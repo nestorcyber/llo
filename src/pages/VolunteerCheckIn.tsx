@@ -378,9 +378,6 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
                   required
                 />
               </div>
-              <p className="mt-1.5 text-xs text-slate-500">
-                Official format: <code className="text-linkedin font-mono font-semibold">LLO-VOL-###</code>
-              </p>
             </div>
 
             {/* Field 2: Programme Session Selection Radio Buttons */}
