@@ -36,7 +36,7 @@ describe('Admin Active Programme Day Activation for Volunteers', () => {
     expect(activeDayLog?.details).toMatchObject({ day_number: 4 });
   });
 
-  it('allows volunteers to check in tasks on the newly activated day', () => {
+  it('allows volunteers to check in on the newly activated day', () => {
     const staff = dataStore.getStaff()[0];
 
     // Activate Day 8
@@ -47,15 +47,11 @@ describe('Admin Active Programme Day Activation for Volunteers', () => {
 
     const morningSlot = schedule.slots.find(s => s.session_code === 'morning')!;
     expect(morningSlot).toBeDefined();
-    expect(morningSlot.tasks.length).toBeGreaterThan(0);
-
-    const task = morningSlot.tasks[0];
 
     // Volunteer check-in for Day 8
     const subResult = dataStore.submitTask({
       volunteer_id: 'LLO-VOL-002',
       session_slot_id: morningSlot.id,
-      session_task_id: task.id,
     });
 
     expect(subResult.success).toBe(true);

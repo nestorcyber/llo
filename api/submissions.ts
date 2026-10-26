@@ -34,10 +34,10 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
   );
 
   const body = req.body;
-  if (!body || !body.volunteer_id || !body.session_task_id || !body.session_slot_id) {
+  if (!body || !body.volunteer_id || !body.session_slot_id) {
     return res.status(400).json({
       success: false,
-      message: 'Missing required fields: volunteer_id, session_task_id, and session_slot_id must be provided.',
+      message: 'Missing required fields: volunteer_id and session_slot_id must be provided.',
       error_code: 'INVALID_VOLUNTEER_ID',
     });
   }
@@ -62,7 +62,7 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
     }
     return res.status(429).json({
       success: false,
-      message: `Too many submission attempts. Please wait ${rateCheck.retryAfterSeconds} seconds before trying again.`,
+      message: `Too many check-in attempts. Please wait ${rateCheck.retryAfterSeconds} seconds before trying again.`,
       error_code: 'RATE_LIMITED',
     });
   }
@@ -98,64 +98,40 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
         // verify PIN hash here (architecture hook)
       }
 
-      // 2. Resolve task and session slot
-      const { data: task, error: taskErr } = await supabaseServer
-        .from('session_tasks')
+      // 2. Resolve session slot
+      const { data: slot, error: slotErr } = await supabaseServer
+        .from('session_slots')
         .select(`
           id,
-          title,
-          status,
-          session_slot_id,
-          session_slot:session_slots (
+          name,
+          session_code,
+          scheduled_time,
+          window_open_offset_minutes,
+          window_close_offset_minutes,
+          is_override_open,
+          programme_day:programme_days (
             id,
-            name,
-            session_code,
-            scheduled_time,
-            window_open_offset_minutes,
-            window_close_offset_minutes,
-            is_override_open,
-            programme_day:programme_days (
+            day_number,
+            calendar_date,
+            programme:programmes (
               id,
-              day_number,
-              calendar_date,
-              programme:programmes (
-                id,
-                status
-              )
+              status
             )
           )
         `)
-        .eq('id', body.session_task_id)
+        .eq('id', body.session_slot_id)
         .maybeSingle();
 
-      if (taskErr || !task) {
+      if (slotErr || !slot) {
         return res.status(404).json({
           success: false,
-          message: 'Selected task was not found.',
-          error_code: 'INVALID_TASK',
+          message: 'Selected session slot was not found.',
+          error_code: 'INVALID_SESSION',
         });
       }
 
-      if (task.session_slot_id !== body.session_slot_id) {
-        return res.status(400).json({
-          success: false,
-          message: 'Task does not belong to the selected session.',
-          error_code: 'TASK_SESSION_MISMATCH',
-        });
-      }
-
-      if (task.status !== 'open') {
-        return res.status(400).json({
-          success: false,
-          message: `This task is marked as "${task.status}" and cannot accept submissions.`,
-          error_code: 'INVALID_TASK',
-        });
-      }
-
-      // Extract slot & day
-      const slot = task.session_slot as any;
-      const day = slot?.programme_day as any;
-      const programme = day?.programme as any;
+      const day = (slot as any).programme_day;
+      const programme = day?.programme;
 
       if (!slot || !day || programme?.status !== 'active') {
         return res.status(400).json({
@@ -170,12 +146,29 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
       if (!isOpen) {
         return res.status(400).json({
           success: false,
-          message: `Submission closed: ${slot.name} is outside its permitted submission window.`,
+          message: `Check-in closed: ${slot.name} is outside its permitted window.`,
           error_code: 'SESSION_CLOSED',
         });
       }
 
-      // 4. Generate server timestamp & Insert submission record
+      // Check duplicate check-in
+      const { data: existingSub } = await supabaseServer
+        .from('task_submissions')
+        .select('id, submitted_at')
+        .eq('volunteer_id', volunteer.id)
+        .eq('session_slot_id', slot.id)
+        .neq('status', 'voided')
+        .maybeSingle();
+
+      if (existingSub) {
+        return res.status(409).json({
+          success: false,
+          message: `Duplicate check-in rejected: You have already checked in for ${slot.name}.`,
+          error_code: 'DUPLICATE_SUBMISSION',
+        });
+      }
+
+      // 4. Generate server timestamp & Insert check-in record
       const serverTimestamp = new Date().toISOString();
       const userAgent = typeof req.headers?.['user-agent'] === 'string' ? req.headers['user-agent'] : 'Web Client';
 
@@ -185,7 +178,6 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
           programme_id: programme.id,
           programme_day_id: day.id,
           session_slot_id: slot.id,
-          session_task_id: task.id,
           volunteer_id: volunteer.id,
           status: 'reported',
           submitted_at: serverTimestamp,
@@ -196,11 +188,10 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
         .single();
 
       if (insertErr) {
-        // PostgreSQL error 23505 = unique_violation
         if (insertErr.code === '23505' || insertErr.message?.includes('duplicate key')) {
           return res.status(409).json({
             success: false,
-            message: `Duplicate submission rejected: You have already checked in for "${task.title}".`,
+            message: `Duplicate check-in rejected: You have already checked in for ${slot.name}.`,
             error_code: 'DUPLICATE_SUBMISSION',
           });
         }
@@ -209,12 +200,11 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
 
       return res.status(201).json({
         success: true,
-        message: 'Participation recorded successfully!',
+        message: 'Check-in recorded successfully!',
         submission: {
           id: newSub.id,
           volunteer_id: volunteer.volunteer_id,
           volunteer_name: volunteer.full_name,
-          task_title: task.title,
           session_name: slot.name,
           day_number: day.day_number,
           submitted_at: serverTimestamp,
@@ -225,7 +215,7 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
       console.error('Supabase submission error:', err);
       return res.status(500).json({
         success: false,
-        message: 'An internal server error occurred while recording submission.',
+        message: 'An internal server error occurred while recording check-in.',
         error_code: 'SERVER_ERROR',
       });
     }

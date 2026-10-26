@@ -9,7 +9,6 @@ import {
   Activity,
   Award,
   Filter,
-  BarChart3,
   RefreshCw,
 } from 'lucide-react';
 import { DashboardMetrics, ProgrammeDay } from '../../types';
@@ -125,11 +124,11 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 3: Total Task Submissions */}
+        {/* Card 3: Total Check-Ins */}
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Task Submissions
+              Total Check-Ins
             </span>
             <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
               <Activity className="w-4 h-4" />
@@ -137,23 +136,23 @@ export const Dashboard: React.FC = () => {
           </div>
           <div className="text-2xl font-black text-slate-900">{metrics.total_submissions}</div>
           <div className="text-xs text-slate-500 mt-1">
-            Total reported tasks completed across sessions
+            Total recorded session check-ins across programme
           </div>
         </div>
 
-        {/* Card 4: Task Completion Rate */}
+        {/* Card 4: Attendance Rate */}
         <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Completion Rate
+              Attendance Rate
             </span>
             <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{metrics.completion_rate_percentage}%</div>
+          <div className="text-2xl font-black text-slate-900">{metrics.attendance_rate_percentage}%</div>
           <div className="text-xs text-slate-500 mt-1">
-            Based on active volunteer-task opportunities
+            Based on active volunteer session opportunities
           </div>
         </div>
       </div>
@@ -162,7 +161,7 @@ export const Dashboard: React.FC = () => {
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
         <h2 className="text-sm font-bold text-slate-900 mb-1">Session Participation Breakdown</h2>
         <p className="text-xs text-slate-500 mb-4">
-          Submissions distributed across the 3 scheduled Nigeria time slots (WAT)
+          Check-ins distributed across the 3 scheduled Nigeria time slots (WAT)
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -231,7 +230,7 @@ export const Dashboard: React.FC = () => {
           <div>
             <h2 className="text-sm font-bold text-slate-900">30-Day Daily Engagement Trends</h2>
             <p className="text-xs text-slate-500">
-              Distinguishing unique volunteers (bars) from total task submissions (trend)
+              Distinguishing unique volunteers (bars) from total check-ins (trend)
             </p>
           </div>
           <span className="text-xs text-slate-500 flex items-center space-x-3">
@@ -241,7 +240,7 @@ export const Dashboard: React.FC = () => {
             </span>
             <span className="flex items-center space-x-1">
               <span className="w-2.5 h-2.5 rounded bg-slate-300 inline-block"></span>
-              <span>Total Submissions</span>
+              <span>Total Check-Ins</span>
             </span>
           </span>
         </div>
@@ -258,14 +257,14 @@ export const Dashboard: React.FC = () => {
                     ? 'bg-blue-50/80 border-blue-200 text-blue-900'
                     : 'bg-slate-50 border-slate-200 text-slate-500'
                 }`}
-                title={`Day ${d.day_number} (${d.calendar_date}): ${d.unique_volunteers} unique volunteers, ${d.total_submissions} total submissions`}
+                title={`Day ${d.day_number} (${d.calendar_date}): ${d.unique_volunteers} unique volunteers, ${d.total_submissions} total check-ins`}
               >
                 <div className="text-[10px] font-bold text-slate-500">D{d.day_number}</div>
                 <div className="text-xs font-extrabold mt-0.5">
                   {d.unique_volunteers}
                 </div>
                 <div className="text-[9px] text-slate-400">
-                  {d.total_submissions} subs
+                  {d.total_submissions} check-ins
                 </div>
               </div>
             );
@@ -273,56 +272,68 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Task Performance & Volunteer Consistency */}
+      {/* Volunteer Leaderboard & Consistency */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Most Completed Tasks */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center space-x-2 mb-3">
-            <Award className="w-4 h-4 text-emerald-600" />
-            <h2 className="text-sm font-bold text-slate-900">Most Completed Tasks</h2>
+        {/* Top Active Volunteers Leaderboard */}
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm lg:col-span-2">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-2">
+              <Award className="w-5 h-5 text-amber-500" />
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Top Active Volunteers</h2>
+                <p className="text-xs text-slate-500">Volunteers with the highest recorded session check-ins</p>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2.5">
-            {metrics.most_completed_tasks.length === 0 ? (
-              <p className="text-xs text-slate-400 py-4 text-center">No task completions recorded yet.</p>
+          <div className="space-y-3 mt-4">
+            {metrics.top_active_volunteers.length === 0 ? (
+              <p className="text-xs text-slate-400 py-6 text-center">No check-ins recorded yet.</p>
             ) : (
-              metrics.most_completed_tasks.map((task, idx) => (
-                <div key={task.task_id} className="flex items-center justify-between text-xs p-2 bg-slate-50 rounded-lg">
-                  <div className="truncate pr-2">
-                    <span className="font-bold text-slate-400 mr-1.5">#{idx + 1}</span>
-                    <span className="font-semibold text-slate-800">{task.title}</span>
-                    <span className="block text-[10px] text-slate-500">{task.category} • {task.session_name}</span>
-                  </div>
-                  <span className="font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
-                    {task.count}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+              metrics.top_active_volunteers.map((vol, idx) => {
+                const maxCount = metrics.top_active_volunteers[0]?.checkins_count || 1;
+                const percentage = Math.round((vol.checkins_count / Math.max(1, maxCount)) * 100);
 
-        {/* Least Completed Tasks */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex items-center space-x-2 mb-3">
-            <BarChart3 className="w-4 h-4 text-amber-600" />
-            <h2 className="text-sm font-bold text-slate-900">Least Completed Tasks</h2>
-          </div>
-          <div className="space-y-2.5">
-            {metrics.least_completed_tasks.length === 0 ? (
-              <p className="text-xs text-slate-400 py-4 text-center">No tasks recorded yet.</p>
-            ) : (
-              metrics.least_completed_tasks.map((task, idx) => (
-                <div key={task.task_id} className="flex items-center justify-between text-xs p-2 bg-slate-50 rounded-lg">
-                  <div className="truncate pr-2">
-                    <span className="font-bold text-slate-400 mr-1.5">#{idx + 1}</span>
-                    <span className="font-semibold text-slate-800">{task.title}</span>
-                    <span className="block text-[10px] text-slate-500">{task.category} • {task.session_name}</span>
+                return (
+                  <div key={vol.volunteer_id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <span
+                          className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                            idx === 0
+                              ? 'bg-amber-100 text-amber-800'
+                              : idx === 1
+                              ? 'bg-slate-200 text-slate-800'
+                              : idx === 2
+                              ? 'bg-amber-700/20 text-amber-900'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <span className="font-bold text-xs text-slate-900">{vol.full_name}</span>
+                          <span className="font-mono text-[11px] text-linkedin font-semibold ml-2">
+                            {vol.volunteer_id}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="text-xs font-bold text-slate-900 font-mono">
+                          {vol.checkins_count}
+                        </span>
+                        <span className="text-[11px] text-slate-500">check-ins</span>
+                      </div>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="w-full bg-slate-200/70 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-linkedin h-full rounded-full transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
                   </div>
-                  <span className="font-mono font-bold text-slate-600 bg-slate-200 px-2 py-0.5 rounded">
-                    {task.count}
-                  </span>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

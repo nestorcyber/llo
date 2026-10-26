@@ -86,13 +86,13 @@ CREATE TABLE IF NOT EXISTS staff_profiles (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- 7. Task Submissions
+-- 7. Task Submissions / Session Check-Ins
 CREATE TABLE IF NOT EXISTS task_submissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     programme_id UUID NOT NULL REFERENCES programmes(id) ON DELETE RESTRICT,
     programme_day_id UUID NOT NULL REFERENCES programme_days(id) ON DELETE RESTRICT,
     session_slot_id UUID NOT NULL REFERENCES session_slots(id) ON DELETE RESTRICT,
-    session_task_id UUID NOT NULL REFERENCES session_tasks(id) ON DELETE RESTRICT,
+    session_task_id UUID REFERENCES session_tasks(id) ON DELETE SET NULL,
     volunteer_id UUID NOT NULL REFERENCES volunteers(id) ON DELETE RESTRICT,
     status TEXT NOT NULL DEFAULT 'reported' CHECK (status IN ('reported', 'verified', 'voided')),
     submitted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -101,8 +101,8 @@ CREATE TABLE IF NOT EXISTS task_submissions (
     voided_at TIMESTAMPTZ,
     voided_by UUID REFERENCES staff_profiles(id) ON DELETE SET NULL,
     void_reason TEXT,
-    -- Database unique constraint: Same volunteer cannot submit the same task twice!
-    CONSTRAINT uq_volunteer_task_submission UNIQUE (volunteer_id, session_task_id)
+    -- Database unique constraint: Same volunteer cannot check in to the same session slot twice!
+    CONSTRAINT uq_volunteer_session_checkin UNIQUE (volunteer_id, session_slot_id)
 );
 
 -- 8. Audit Logs

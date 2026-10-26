@@ -2,7 +2,6 @@ import {
   Programme,
   ProgrammeDay,
   SessionSlot,
-  SessionTask,
   Volunteer,
   StaffProfile,
   TaskSubmission,
@@ -21,22 +20,15 @@ import {
 } from './lagos-time';
 import { normalizeVolunteerId } from './validation';
 
-/**
- * In-Memory & LocalStorage Data Store
- * Provides full offline development capability and acts as the business engine
- * matching the Supabase PostgreSQL schema and business logic 1:1.
- */
-
 // Helper to generate IDs
 const uid = () => 'id-' + Math.random().toString(36).substring(2, 9) + '-' + Date.now().toString(36);
 
-const STORAGE_KEY = 'llo_tracking_data_v1';
+const STORAGE_KEY = 'llo_tracking_data_v2';
 
 interface StoreState {
   programmes: Programme[];
   programme_days: ProgrammeDay[];
   session_slots: SessionSlot[];
-  session_tasks: SessionTask[];
   volunteers: Volunteer[];
   staff_profiles: StaffProfile[];
   task_submissions: TaskSubmission[];
@@ -52,7 +44,7 @@ function initializeDefaultData(): StoreState {
       id: progId,
       title: 'LinkedIn Local Owerri 30-Day Volunteer Programme',
       slug: 'llo-30day-2026',
-      description: 'Official 30-day engagement programme tracking volunteer contributions across morning, afternoon, and evening sessions.',
+      description: 'Official 30-day volunteer attendance tracking across morning, afternoon, and evening sessions.',
       start_date: todayLagos,
       duration_days: 30,
       timezone: 'Africa/Lagos',
@@ -66,7 +58,6 @@ function initializeDefaultData(): StoreState {
   // Generate 30 days starting today
   const programme_days: ProgrammeDay[] = [];
   const session_slots: SessionSlot[] = [];
-  const session_tasks: SessionTask[] = [];
 
   const startDateObj = new Date(todayLagos + 'T00:00:00Z');
 
@@ -81,12 +72,12 @@ function initializeDefaultData(): StoreState {
       programme_id: progId,
       day_number: d,
       calendar_date: dateStr,
-      theme: `Day ${d} Volunteer Operations & Community Engagement`,
+      theme: `Day ${d} Volunteer Operations`,
       is_active: true,
       created_at: new Date().toISOString(),
     });
 
-    // 3 slots per day
+    // 3 slots per day: Morning (10:00 AM), Afternoon (3:00 PM), Evening (8:00 PM)
     const morningSlotId = `slot-${dayId}-morning`;
     const afternoonSlotId = `slot-${dayId}-afternoon`;
     const eveningSlotId = `slot-${dayId}-evening`;
@@ -100,7 +91,7 @@ function initializeDefaultData(): StoreState {
         scheduled_time: '10:00:00',
         window_open_offset_minutes: 30, // 09:30 AM
         window_close_offset_minutes: 120, // 12:00 PM
-        is_override_open: d === 1 ? true : null, // keep Day 1 morning open for demo check-in
+        is_override_open: d === 1 ? true : null, // Day 1 morning open for test check-in
         created_at: new Date().toISOString(),
       },
       {
@@ -111,7 +102,7 @@ function initializeDefaultData(): StoreState {
         scheduled_time: '15:00:00',
         window_open_offset_minutes: 30, // 02:30 PM
         window_close_offset_minutes: 120, // 05:00 PM
-        is_override_open: d === 1 ? true : null, // keep Day 1 afternoon open for demo check-in
+        is_override_open: d === 1 ? true : null, // Day 1 afternoon open for test check-in
         created_at: new Date().toISOString(),
       },
       {
@@ -122,87 +113,13 @@ function initializeDefaultData(): StoreState {
         scheduled_time: '20:00:00',
         window_open_offset_minutes: 30, // 07:30 PM
         window_close_offset_minutes: 120, // 10:00 PM
-        is_override_open: d === 1 ? true : null, // keep Day 1 evening open for demo check-in
+        is_override_open: d === 1 ? true : null, // Day 1 evening open for test check-in
         created_at: new Date().toISOString(),
-      }
-    );
-
-    // Seed tasks for day
-    session_tasks.push(
-      {
-        id: `task-${morningSlotId}-1`,
-        session_slot_id: morningSlotId,
-        title: 'Morning Social Media Amplification & Repost',
-        description: 'Share official morning announcements on LinkedIn, X, and WhatsApp status with official tags.',
-        category: 'Media & Publicity',
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: `task-${morningSlotId}-2`,
-        session_slot_id: morningSlotId,
-        title: 'Attendee RSVP Support & Community Outreach',
-        description: 'Answer questions in the attendee Telegram/WhatsApp channels and assist with registration inquiries.',
-        category: 'Registration',
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: `task-${morningSlotId}-3`,
-        session_slot_id: morningSlotId,
-        title: 'Logistics Checklist & Standup Sync',
-        description: 'Review physical collateral, badges, banner placements and venue prep itinerary.',
-        category: 'Logistics',
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: `task-${afternoonSlotId}-1`,
-        session_slot_id: afternoonSlotId,
-        title: 'Speaker & Guest Coordinator Liaison',
-        description: 'Connect with scheduled afternoon panel speakers to verify audio-visual assets and timing.',
-        category: 'Protocol',
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: `task-${afternoonSlotId}-2`,
-        session_slot_id: afternoonSlotId,
-        title: 'Sponsorship Asset Review & Verification',
-        description: 'Ensure sponsor logos, banners, and digital flyers are accurately displayed across channels.',
-        category: 'Media & Publicity',
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: `task-${eveningSlotId}-1`,
-        session_slot_id: eveningSlotId,
-        title: 'Daily Engagement Standup & Debrief Report',
-        description: 'Submit summary log of key achievements, blockers, and volunteer support needs for the day.',
-        category: 'General',
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      {
-        id: `task-${eveningSlotId}-2`,
-        session_slot_id: eveningSlotId,
-        title: 'Post-Session Community Networking Moderation',
-        description: 'Host and moderate discussions on LinkedIn feed relating to the day’s featured topic.',
-        category: 'Media & Publicity',
-        status: 'open',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       }
     );
   }
 
-  // Seed Volunteers
+  // Seed Volunteers: Clean list with IDs and Names
   const volunteers: Volunteer[] = [
     {
       id: 'vol-1',
@@ -210,9 +127,8 @@ function initializeDefaultData(): StoreState {
       full_name: 'Chinedu Okeke',
       email: 'chinedu.okeke@example.com',
       phone: '+2348031234567',
-      track: 'Logistics',
       is_active: true,
-      notes: 'Logistics Lead - Handles venue signage and supplies',
+      notes: 'Volunteer Member',
       created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -222,9 +138,8 @@ function initializeDefaultData(): StoreState {
       full_name: 'Amina Yusuf',
       email: 'amina.yusuf@example.com',
       phone: '+2348022345678',
-      track: 'Media & Publicity',
       is_active: true,
-      notes: 'Content Creator & Photographer',
+      notes: 'Volunteer Member',
       created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -234,9 +149,8 @@ function initializeDefaultData(): StoreState {
       full_name: 'Ngozi Eze',
       email: 'ngozi.eze@example.com',
       phone: '+2348093456789',
-      track: 'Protocol',
       is_active: true,
-      notes: 'VIP Liaison and Speaker Concierge',
+      notes: 'Volunteer Member',
       created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -246,9 +160,8 @@ function initializeDefaultData(): StoreState {
       full_name: 'Emeka Nwosu',
       email: 'emeka.nwosu@example.com',
       phone: '+2348144567890',
-      track: 'Technical',
       is_active: true,
-      notes: 'Audio-Visual & Live Stream Technician',
+      notes: 'Volunteer Member',
       created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -258,9 +171,8 @@ function initializeDefaultData(): StoreState {
       full_name: 'Fatima Bello',
       email: 'fatima.bello@example.com',
       phone: '+2348185678901',
-      track: 'Registration',
       is_active: true,
-      notes: 'Front Desk & Attendee Check-In',
+      notes: 'Volunteer Member',
       created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -270,9 +182,8 @@ function initializeDefaultData(): StoreState {
       full_name: 'Kelechi Umeh',
       email: 'kelechi.umeh@example.com',
       phone: '+2347066789012',
-      track: 'General',
       is_active: true,
-      notes: 'Floater & Operations Support',
+      notes: 'Volunteer Member',
       created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -282,9 +193,8 @@ function initializeDefaultData(): StoreState {
       full_name: 'Blessing Okafor',
       email: 'blessing.okafor@example.com',
       phone: '+2347012345678',
-      track: 'Logistics',
       is_active: false, // Inactive volunteer to test rejection
-      notes: 'On leave - Deactivated ID for testing',
+      notes: 'On leave - Deactivated',
       created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -321,10 +231,9 @@ function initializeDefaultData(): StoreState {
     },
   ];
 
-  // Initial Sample Submissions (e.g. for Day 1)
+  // Initial Sample Check-Ins (e.g. for Day 1)
   const d1MorningSlot = session_slots.find(s => s.programme_day_id === 'day-prog-llo-2026-1' && s.session_code === 'morning')!;
   const d1AfternoonSlot = session_slots.find(s => s.programme_day_id === 'day-prog-llo-2026-1' && s.session_code === 'afternoon')!;
-  const d1Tasks = session_tasks.filter(t => t.session_slot_id === d1MorningSlot.id);
 
   const task_submissions: TaskSubmission[] = [
     {
@@ -332,7 +241,6 @@ function initializeDefaultData(): StoreState {
       programme_id: progId,
       programme_day_id: 'day-prog-llo-2026-1',
       session_slot_id: d1MorningSlot.id,
-      session_task_id: d1Tasks[0].id,
       volunteer_id: volunteers[0].id,
       status: 'reported',
       submitted_at: new Date(Date.now() - 3600000 * 2).toISOString(),
@@ -347,7 +255,6 @@ function initializeDefaultData(): StoreState {
       programme_id: progId,
       programme_day_id: 'day-prog-llo-2026-1',
       session_slot_id: d1MorningSlot.id,
-      session_task_id: d1Tasks[1].id,
       volunteer_id: volunteers[1].id,
       status: 'reported',
       submitted_at: new Date(Date.now() - 3600000 * 1.5).toISOString(),
@@ -362,7 +269,6 @@ function initializeDefaultData(): StoreState {
       programme_id: progId,
       programme_day_id: 'day-prog-llo-2026-1',
       session_slot_id: d1AfternoonSlot.id,
-      session_task_id: session_tasks.find(t => t.session_slot_id === d1AfternoonSlot.id)!.id,
       volunteer_id: volunteers[2].id,
       status: 'reported',
       submitted_at: new Date(Date.now() - 3600000 * 0.8).toISOString(),
@@ -397,24 +303,12 @@ function initializeDefaultData(): StoreState {
       ip_address: '127.0.0.1',
       created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
     },
-    {
-      id: 'log-3',
-      staff_id: staff_profiles[1].id,
-      staff_email: staff_profiles[1].email,
-      action: 'VOLUNTEER_IMPORT',
-      target_type: 'volunteer',
-      target_id: null,
-      details: { imported_count: 6, track_breakdown: { Logistics: 2, 'Media & Publicity': 1, Protocol: 1, Technical: 1, Registration: 1, General: 1 } },
-      ip_address: '127.0.0.1',
-      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    },
   ];
 
   return {
     programmes,
     programme_days,
     session_slots,
-    session_tasks,
     volunteers,
     staff_profiles,
     task_submissions,
@@ -501,15 +395,15 @@ class Store {
     const enrichedSlots = daySlots.map(slot => {
       const isOpen = isSessionWindowOpen(slot, currentDay!.calendar_date);
       const windowStatus = getSessionWindowStatus(slot, currentDay!.calendar_date);
-      const tasks = this.state.session_tasks.filter(
-        t => t.session_slot_id === slot.id && t.status === 'open'
-      );
+      const checkinCount = this.state.task_submissions.filter(
+        sub => sub.session_slot_id === slot.id && sub.status !== 'voided'
+      ).length;
 
       return {
         ...slot,
         is_open: isOpen,
         window_status: windowStatus,
-        tasks,
+        checkins_count: checkinCount,
       };
     });
 
@@ -548,9 +442,9 @@ class Store {
   }
 
   /**
-   * Secure Task Submission Engine
-   * Validates volunteer ID, checks active state, verifies task & session slot window in Africa/Lagos,
-   * enforces unique constraint, and saves with status 'reported'.
+   * Volunteer Session Check-In Engine
+   * Validates volunteer ID, verifies session window, enforces duplicate constraint,
+   * and saves the check-in record.
    */
   public submitTask(payload: SubmissionPayload, clientIp = '127.0.0.1', userAgent = 'Web Client'): SubmissionResult {
     const normalizedId = normalizeVolunteerId(payload.volunteer_id);
@@ -563,7 +457,7 @@ class Store {
     if (!volunteer) {
       return {
         success: false,
-        message: `Volunteer ID "${normalizedId}" was not found in our records. Please verify your assigned ID with your track lead.`,
+        message: `Volunteer ID "${normalizedId}" was not found. Please verify your ID with the coordinator.`,
         error_code: 'INVALID_VOLUNTEER_ID',
       };
     }
@@ -571,30 +465,12 @@ class Store {
     if (!volunteer.is_active) {
       return {
         success: false,
-        message: `Volunteer ID "${normalizedId}" is currently marked as inactive. Please contact the LinkedIn Local Owerri volunteer coordinators.`,
+        message: `Volunteer ID "${normalizedId}" is currently inactive. Please contact the administrator.`,
         error_code: 'INACTIVE_VOLUNTEER',
       };
     }
 
-    // 2. Resolve task
-    const task = this.state.session_tasks.find(t => t.id === payload.session_task_id);
-    if (!task) {
-      return {
-        success: false,
-        message: 'The selected task does not exist or has been removed.',
-        error_code: 'INVALID_TASK',
-      };
-    }
-
-    if (task.status !== 'open') {
-      return {
-        success: false,
-        message: `This task is marked as "${task.status}" and is not currently open for submissions.`,
-        error_code: 'INVALID_TASK',
-      };
-    }
-
-    // 3. Resolve session slot
+    // 2. Resolve session slot
     const slot = this.state.session_slots.find(s => s.id === payload.session_slot_id);
     if (!slot) {
       return {
@@ -604,15 +480,7 @@ class Store {
       };
     }
 
-    if (task.session_slot_id !== slot.id) {
-      return {
-        success: false,
-        message: 'The selected task does not belong to the selected session.',
-        error_code: 'TASK_SESSION_MISMATCH',
-      };
-    }
-
-    // 4. Resolve programme day
+    // 3. Resolve programme day
     const day = this.state.programme_days.find(d => d.id === slot.programme_day_id);
     if (!day) {
       return {
@@ -622,34 +490,34 @@ class Store {
       };
     }
 
-    // 5. Verify session window in Africa/Lagos
+    // 4. Verify session window in Africa/Lagos
     const isOpen = isSessionWindowOpen(slot, day.calendar_date);
     if (!isOpen) {
       const windowStr = formatSessionWindowRange(slot.scheduled_time, slot.window_open_offset_minutes, slot.window_close_offset_minutes);
       return {
         success: false,
-        message: `Submission closed: ${slot.name} accepts submissions during its active window (${windowStr}).`,
+        message: `Check-in closed: ${slot.name} accepts check-ins during its active window (${windowStr}).`,
         error_code: 'SESSION_CLOSED',
       };
     }
 
-    // 6. Enforce Unique Database Constraint:
-    // Same volunteer cannot submit the same task twice (unless previously voided)
+    // 5. Enforce Unique Database Constraint:
+    // Same volunteer cannot check in to the same session slot twice (unless previously voided)
     const existing = this.state.task_submissions.find(
       sub => sub.volunteer_id === volunteer.id &&
-             sub.session_task_id === task.id &&
+             sub.session_slot_id === slot.id &&
              sub.status !== 'voided'
     );
 
     if (existing) {
       return {
         success: false,
-        message: `Duplicate submission rejected: You have already checked in for "${task.title}" for this session at ${formatLagosDateTime(existing.submitted_at)}.`,
+        message: `Duplicate check-in rejected: You have already checked in for ${slot.name} at ${formatLagosDateTime(existing.submitted_at)}.`,
         error_code: 'DUPLICATE_SUBMISSION',
       };
     }
 
-    // 7. Save submission record with server-generated timestamp
+    // 6. Save check-in record with server-generated timestamp
     const now = new Date();
     const submissionId = uid();
     const activeProg = this.state.programmes.find(p => p.id === day.programme_id) || this.state.programmes[0];
@@ -659,7 +527,6 @@ class Store {
       programme_id: activeProg.id,
       programme_day_id: day.id,
       session_slot_id: slot.id,
-      session_task_id: task.id,
       volunteer_id: volunteer.id,
       status: 'reported',
       submitted_at: now.toISOString(), // Server timestamptz!
@@ -675,12 +542,11 @@ class Store {
 
     return {
       success: true,
-      message: 'Participation recorded successfully!',
+      message: 'Check-in recorded successfully!',
       submission: {
         id: submissionId,
         volunteer_id: volunteer.volunteer_id,
         volunteer_name: volunteer.full_name,
-        task_title: task.title,
         session_name: slot.name,
         day_number: day.day_number,
         submitted_at: now.toISOString(),
@@ -698,7 +564,7 @@ class Store {
     const totalVolunteers = this.state.volunteers.length;
     const activeVolunteersCount = this.state.volunteers.filter(v => v.is_active).length;
 
-    // Filter valid (non-voided) submissions
+    // Filter valid (non-voided) check-ins
     let validSubmissions = this.state.task_submissions.filter(
       s => s.programme_id === activeProg.id && s.status !== 'voided'
     );
@@ -733,7 +599,7 @@ class Store {
       else if (code === 'evening') eveningCount++;
     }
 
-    // Daily engagement trends for Day 1..30
+    // Daily check-in trends for Day 1..30
     const progDays = this.state.programme_days
       .filter(d => d.programme_id === activeProg.id)
       .sort((a, b) => a.day_number - b.day_number);
@@ -751,34 +617,26 @@ class Store {
       };
     });
 
-    // Task counts
-    const taskCountMap = new Map<string, number>();
+    // Top active volunteers leaderboard
+    const volCheckinMap = new Map<string, number>();
     for (const sub of validSubmissions) {
-      const curr = taskCountMap.get(sub.session_task_id) || 0;
-      taskCountMap.set(sub.session_task_id, curr + 1);
+      volCheckinMap.set(sub.volunteer_id, (volCheckinMap.get(sub.volunteer_id) || 0) + 1);
     }
 
-    const taskListWithCount = this.state.session_tasks.map(task => {
-      const slot = this.state.session_slots.find(s => s.id === task.session_slot_id);
-      return {
-        task_id: task.id,
-        title: task.title,
-        category: task.category,
-        session_name: slot?.name || 'Session',
-        count: taskCountMap.get(task.id) || 0,
-      };
-    });
+    const topVolunteers = this.state.volunteers
+      .map(v => ({
+        volunteer_id: v.volunteer_id,
+        full_name: v.full_name,
+        checkins_count: volCheckinMap.get(v.id) || 0,
+      }))
+      .sort((a, b) => b.checkins_count - a.checkins_count)
+      .slice(0, 5);
 
-    taskListWithCount.sort((a, b) => b.count - a.count);
-    const mostCompleted = taskListWithCount.slice(0, 5);
-    const leastCompleted = [...taskListWithCount].reverse().slice(0, 5);
+    // Attendance rate
+    const totalPossibleSlots = Math.max(1, activeVolunteersCount * 30 * 3);
+    const attendanceRate = Math.min(100, Math.round((validSubmissions.length / totalPossibleSlots) * 100));
 
-    // Completion rate: total completed tasks / (active volunteers * open tasks available up to today)
-    const openTasksCount = this.state.session_tasks.filter(t => t.status === 'open').length;
-    const theoreticalOpportunities = Math.max(1, activeVolunteersCount * Math.min(openTasksCount, 30));
-    const completionRate = Math.min(100, Math.round((validSubmissions.length / theoreticalOpportunities) * 100));
-
-    // Volunteer consistency: calculate active days count per volunteer
+    // Volunteer consistency
     let high = 0;
     let medium = 0;
     let low = 0;
@@ -797,15 +655,14 @@ class Store {
       active_volunteers_count: activeVolunteersCount,
       unique_volunteers_today: uniqueVolunteersToday,
       total_submissions: validSubmissions.length,
-      completion_rate_percentage: completionRate,
+      attendance_rate_percentage: attendanceRate,
       session_counts: {
         morning: morningCount,
         afternoon: afternoonCount,
         evening: eveningCount,
       },
       daily_trends: dailyTrends,
-      most_completed_tasks: mostCompleted,
-      least_completed_tasks: leastCompleted,
+      top_active_volunteers: topVolunteers,
       volunteer_consistency: { high, medium, low },
     };
   }
@@ -817,20 +674,17 @@ class Store {
     search?: string;
   }): TaskSubmission[] {
     const volMap = new Map(this.state.volunteers.map(v => [v.id, v]));
-    const taskMap = new Map(this.state.session_tasks.map(t => [t.id, t]));
     const slotMap = new Map(this.state.session_slots.map(s => [s.id, s]));
     const dayMap = new Map(this.state.programme_days.map(d => [d.id, d]));
 
     let list = this.state.task_submissions.map(sub => {
       const vol = volMap.get(sub.volunteer_id);
-      const task = taskMap.get(sub.session_task_id);
       const slot = slotMap.get(sub.session_slot_id);
       const day = dayMap.get(sub.programme_day_id);
 
       return {
         ...sub,
-        volunteer: vol ? { volunteer_id: vol.volunteer_id, full_name: vol.full_name, track: vol.track } : undefined,
-        task: task ? { title: task.title, category: task.category } : undefined,
+        volunteer: vol ? { volunteer_id: vol.volunteer_id, full_name: vol.full_name } : undefined,
         slot: slot ? { session_code: slot.session_code, name: slot.name, scheduled_time: slot.scheduled_time } : undefined,
         day: day ? { day_number: day.day_number, calendar_date: day.calendar_date } : undefined,
       };
@@ -849,8 +703,7 @@ class Store {
       const q = filters.search.toLowerCase();
       list = list.filter(s =>
         s.volunteer?.volunteer_id.toLowerCase().includes(q) ||
-        s.volunteer?.full_name.toLowerCase().includes(q) ||
-        s.task?.title.toLowerCase().includes(q)
+        s.volunteer?.full_name.toLowerCase().includes(q)
       );
     }
 
@@ -859,7 +712,7 @@ class Store {
 
   public voidSubmission(submissionId: string, reason: string, staffUser: StaffProfile): { success: boolean; message: string } {
     const sub = this.state.task_submissions.find(s => s.id === submissionId);
-    if (!sub) return { success: false, message: 'Submission not found' };
+    if (!sub) return { success: false, message: 'Check-in record not found' };
 
     sub.status = 'voided';
     sub.voided_at = new Date().toISOString();
@@ -873,10 +726,10 @@ class Store {
     });
 
     this.save();
-    return { success: true, message: 'Submission has been voided and audit logged.' };
+    return { success: true, message: 'Check-in record has been voided and audit logged.' };
   }
 
-  public getVolunteers(search = '', trackFilter = '', statusFilter = ''): Volunteer[] {
+  public getVolunteers(search = '', statusFilter = ''): Volunteer[] {
     const subCountMap = new Map<string, number>();
     for (const sub of this.state.task_submissions) {
       if (sub.status !== 'voided') {
@@ -896,9 +749,6 @@ class Store {
         v.full_name.toLowerCase().includes(q) ||
         (v.email && v.email.toLowerCase().includes(q))
       );
-    }
-    if (trackFilter) {
-      list = list.filter(v => v.track === trackFilter);
     }
     if (statusFilter === 'active') {
       list = list.filter(v => v.is_active);
@@ -927,7 +777,6 @@ class Store {
     this.addAuditLog(staffUser, 'VOLUNTEER_ADD', 'volunteer', newVol.id, {
       volunteer_id: newVol.volunteer_id,
       name: newVol.full_name,
-      track: newVol.track,
     });
     this.save();
 
@@ -998,7 +847,7 @@ class Store {
 
   /**
    * 30-Day Participation Matrix for a specific volunteer
-   * Returns Day 1..30 with morning, afternoon, evening participation states
+   * Shows Morning, Afternoon, Evening check-in states
    */
   public getVolunteerParticipationMatrix(volunteerId: string) {
     const progDays = this.state.programme_days
@@ -1006,7 +855,6 @@ class Store {
       .sort((a, b) => a.day_number - b.day_number);
 
     const subs = this.state.task_submissions.filter(s => s.volunteer_id === volunteerId);
-
     const slotMap = new Map(this.state.session_slots.map(s => [s.id, s]));
 
     return progDays.map(day => {
@@ -1028,7 +876,7 @@ class Store {
   }
 
   // =========================================================================
-  // Tasks & Schedule Management
+  // Sessions & Programme Management
   // =========================================================================
 
   public getProgrammeDays(programmeId?: string): ProgrammeDay[] {
@@ -1050,11 +898,8 @@ class Store {
 
     activeProg.active_day_number = dayNumber;
     activeProg.updated_at = new Date().toISOString();
-
-    // Ensure the target day is active
     targetDay.is_active = true;
 
-    // If openDaySlots is true, ensure slots for that day accept submissions
     if (openDaySlots) {
       const slots = this.state.session_slots.filter(s => s.programme_day_id === targetDay.id);
       for (const slot of slots) {
@@ -1071,62 +916,29 @@ class Store {
     this.save();
     return {
       success: true,
-      message: `Day ${dayNumber} (${targetDay.calendar_date}) is now set as the active day for volunteer access!`,
+      message: `Day ${dayNumber} (${targetDay.calendar_date}) is now set as the active day for volunteer check-ins!`,
       active_day_number: dayNumber,
     };
-  }
-
-  public toggleDayActive(dayId: string, isActive: boolean, staffUser?: StaffProfile) {
-    const day = this.state.programme_days.find(d => d.id === dayId);
-    if (!day) return { success: false, message: 'Day not found' };
-
-    day.is_active = isActive;
-    this.addAuditLog(staffUser || null, 'DAY_ACTIVE_TOGGLED', 'programme_day', dayId, {
-      day_number: day.day_number,
-      is_active: isActive,
-    });
-    this.save();
-    return { success: true, message: `Day ${day.day_number} active status updated to ${isActive}` };
   }
 
   public getDaySessionSlots(dayId: string) {
     const slots = this.state.session_slots.filter(s => s.programme_day_id === dayId);
     const day = this.state.programme_days.find(d => d.id === dayId);
     return slots.map(slot => {
-      const tasks = this.state.session_tasks.filter(t => t.session_slot_id === slot.id);
       const isOpen = day ? isSessionWindowOpen(slot, day.calendar_date) : false;
       const status = day ? getSessionWindowStatus(slot, day.calendar_date) : 'closed';
+      const checkinCount = this.state.task_submissions.filter(
+        sub => sub.session_slot_id === slot.id && sub.status !== 'voided'
+      ).length;
+
       return {
         ...slot,
         is_open: isOpen,
         window_status: status,
         formatted_window: formatSessionWindowRange(slot.scheduled_time, slot.window_open_offset_minutes, slot.window_close_offset_minutes),
-        tasks,
+        checkins_count: checkinCount,
       };
     });
-  }
-
-  public addTask(task: Omit<SessionTask, 'id' | 'created_at' | 'updated_at'>, staffUser: StaffProfile) {
-    const newTask: SessionTask = {
-      ...task,
-      id: uid(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    this.state.session_tasks.push(newTask);
-    this.addAuditLog(staffUser, 'TASK_CREATE', 'task', newTask.id, { title: newTask.title, category: newTask.category });
-    this.save();
-    return { success: true, task: newTask };
-  }
-
-  public updateTask(id: string, updates: Partial<SessionTask>, staffUser: StaffProfile) {
-    const task = this.state.session_tasks.find(t => t.id === id);
-    if (!task) return { success: false, message: 'Task not found' };
-
-    Object.assign(task, updates, { updated_at: new Date().toISOString() });
-    this.addAuditLog(staffUser, 'TASK_EDIT', 'task', id, { updates });
-    this.save();
-    return { success: true, message: 'Task updated successfully' };
   }
 
   public setSlotOverride(slotId: string, override: boolean | null, staffUser: StaffProfile) {
@@ -1170,7 +982,6 @@ class Store {
     const target = this.state.staff_profiles.find(s => s.id === id);
     if (!target) return { success: false, message: 'Staff member not found.' };
 
-    // Protect final owner account from accidental demotion
     if (target.role === 'owner' && newRole !== 'owner') {
       const remainingOwners = this.state.staff_profiles.filter(s => s.role === 'owner' && s.is_active && s.id !== id);
       if (remainingOwners.length === 0) {

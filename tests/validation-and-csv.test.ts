@@ -73,9 +73,9 @@ describe('CSV Formula Injection Protection (CWE-1236)', () => {
 
 describe('Volunteer CSV Import Parsing', () => {
   it('parses valid volunteer CSV with headers', () => {
-    const csvData = `volunteer_id,full_name,email,phone,track
-LLO-VOL-010,Ifeanyi Duru,ifeanyi@example.com,+2348011112222,Logistics
-LLO-VOL-011,Nkechi Nwankwo,nkechi@example.com,+2348022223333,Protocol`;
+    const csvData = `volunteer_id,full_name,email,phone
+LLO-VOL-010,Ifeanyi Duru,ifeanyi@example.com,+2348011112222
+LLO-VOL-011,Nkechi Nwankwo,nkechi@example.com,+2348022223333`;
 
     const result = parseVolunteersCsv(csvData);
     expect(result.totalRows).toBe(2);
@@ -83,14 +83,13 @@ LLO-VOL-011,Nkechi Nwankwo,nkechi@example.com,+2348022223333,Protocol`;
     expect(result.errorCount).toBe(0);
     expect(result.rows[0].volunteer_id).toBe('LLO-VOL-010');
     expect(result.rows[0].full_name).toBe('Ifeanyi Duru');
-    expect(result.rows[0].track).toBe('Logistics');
     expect(result.rows[1].volunteer_id).toBe('LLO-VOL-011');
   });
 
   it('detects duplicate IDs inside the CSV and flags them', () => {
-    const csvWithDupes = `volunteer_id,full_name,email,phone,track
-LLO-VOL-010,Person A,a@example.com,,General
-LLO-VOL-010,Person B,b@example.com,,General`;
+    const csvWithDupes = `volunteer_id,full_name,email,phone
+LLO-VOL-010,Person A,a@example.com,
+LLO-VOL-010,Person B,b@example.com,`;
 
     const result = parseVolunteersCsv(csvWithDupes);
     expect(result.totalRows).toBe(2);
@@ -101,10 +100,10 @@ LLO-VOL-010,Person B,b@example.com,,General`;
   });
 
   it('flags malformed rows and missing fields', () => {
-    const csvWithErrors = `volunteer_id,full_name,email,phone,track
-,Missing ID,test@example.com,,General
-INVALID_ID,Valid Name,test2@example.com,,Media
-LLO-VOL-012,,no_name@example.com,,Protocol`;
+    const csvWithErrors = `volunteer_id,full_name,email,phone
+,Missing ID,test@example.com,
+INVALID_ID,Valid Name,test2@example.com,
+LLO-VOL-012,,no_name@example.com,`;
 
     const result = parseVolunteersCsv(csvWithErrors);
     expect(result.totalRows).toBe(3);
@@ -124,23 +123,17 @@ describe('CSV Generation with Sanitization', () => {
         programme_id: 'p-1',
         programme_day_id: 'd-1',
         session_slot_id: 's-1',
-        session_task_id: 't-1',
         volunteer_id: 'v-1',
-        status: 'reported',
+        status: 'voided',
         submitted_at: '2026-10-26T10:00:00Z',
         submitted_ip: '127.0.0.1',
         user_agent: 'Test',
-        voided_at: null,
-        voided_by: null,
-        void_reason: null,
+        voided_at: '2026-10-26T11:00:00Z',
+        voided_by: 'staff-1',
+        void_reason: '+12345 Dangerous Reason',
         volunteer: {
           volunteer_id: 'LLO-VOL-001',
           full_name: '=cmd|/C calc!A0', // malicious name
-          track: 'Logistics',
-        },
-        task: {
-          title: '+12345 Dangerous Task',
-          category: 'Operations',
         },
         slot: {
           session_code: 'morning',
@@ -157,7 +150,7 @@ describe('CSV Generation with Sanitization', () => {
     const csvOutput = generateAttendanceCsv(submissions);
     // Malicious name starting with '=' must be prefixed with single quote
     expect(csvOutput).toContain(`"'=cmd|/C calc!A0"`);
-    // Malicious title starting with '+' must be prefixed with single quote
-    expect(csvOutput).toContain(`"'+12345 Dangerous Task"`);
+    // Malicious reason starting with '+' must be prefixed with single quote
+    expect(csvOutput).toContain(`"'+12345 Dangerous Reason"`);
   });
 });

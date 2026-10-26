@@ -12,29 +12,28 @@ describe('Dashboard Metrics & Operational Analytics', () => {
     expect(metrics.active_volunteers_count).toBe(6); // 1 inactive in default seed
   });
 
-  it('clearly distinguishes unique participants from total task submissions', () => {
+  it('clearly distinguishes unique participants from total check-ins', () => {
     const schedule = dataStore.getPublicSchedule();
-    const openSlot = schedule.slots.find(s => s.is_open && s.tasks.length >= 2)!;
-    expect(openSlot.tasks.length).toBeGreaterThanOrEqual(2);
+    const morningSlot = schedule.slots.find(s => s.session_code === 'morning')!;
+    const afternoonSlot = schedule.slots.find(s => s.session_code === 'afternoon')!;
 
-    const task1 = openSlot.tasks[0];
-    const task2 = openSlot.tasks[1];
+    // Force open both slots for test
+    morningSlot.is_override_open = true;
+    afternoonSlot.is_override_open = true;
 
-    // Same volunteer submits 2 different tasks in the session
+    // Same volunteer checks into 2 different sessions on the same day
     const volId = 'LLO-VOL-005';
     dataStore.submitTask({
       volunteer_id: volId,
-      session_slot_id: openSlot.id,
-      session_task_id: task1.id,
+      session_slot_id: morningSlot.id,
     });
     dataStore.submitTask({
       volunteer_id: volId,
-      session_slot_id: openSlot.id,
-      session_task_id: task2.id,
+      session_slot_id: afternoonSlot.id,
     });
 
     const metrics = dataStore.getDashboardMetrics();
-    // Unique participants must be <= total submissions
+    // Unique participants must be <= total check-ins
     expect(metrics.unique_volunteers_today).toBeGreaterThanOrEqual(1);
     expect(metrics.total_submissions).toBeGreaterThanOrEqual(metrics.unique_volunteers_today);
   });
@@ -59,14 +58,14 @@ describe('Dashboard Metrics & Operational Analytics', () => {
     }
   });
 
-  it('identifies most and least completed tasks', () => {
+  it('provides top active volunteers leaderboard', () => {
     const metrics = dataStore.getDashboardMetrics();
-    expect(metrics.most_completed_tasks).toBeInstanceOf(Array);
-    expect(metrics.least_completed_tasks).toBeInstanceOf(Array);
+    expect(metrics.top_active_volunteers).toBeInstanceOf(Array);
+    expect(metrics.top_active_volunteers.length).toBeLessThanOrEqual(5);
 
-    if (metrics.most_completed_tasks.length > 0 && metrics.least_completed_tasks.length > 0) {
-      expect(metrics.most_completed_tasks[0].count).toBeGreaterThanOrEqual(
-        metrics.least_completed_tasks[0].count
+    if (metrics.top_active_volunteers.length > 1) {
+      expect(metrics.top_active_volunteers[0].checkins_count).toBeGreaterThanOrEqual(
+        metrics.top_active_volunteers[1].checkins_count
       );
     }
   });

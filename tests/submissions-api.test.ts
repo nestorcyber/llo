@@ -8,12 +8,10 @@ describe('Secure Submission Backend & Business Rules', () => {
     dataStore.resetToDefault();
   });
 
-  it('records valid task submission and resolves volunteer name from ID', async () => {
+  it('records valid session check-in and resolves volunteer name from ID', async () => {
     const schedule = dataStore.getPublicSchedule();
-    const openSlot = schedule.slots.find(s => s.is_open && s.tasks.length > 0);
+    const openSlot = schedule.slots.find(s => s.is_open);
     expect(openSlot).toBeDefined();
-
-    const targetTask = openSlot!.tasks.length > 2 ? openSlot!.tasks[2] : openSlot!.tasks[0];
 
     let responseStatus = 0;
     let responseBody: any = null;
@@ -21,9 +19,8 @@ describe('Secure Submission Backend & Business Rules', () => {
     const mockReq = {
       method: 'POST',
       body: {
-        volunteer_id: 'llo-vol-004', // Emeka Nwosu (Technical)
+        volunteer_id: 'llo-vol-004', // Emeka Nwosu
         session_slot_id: openSlot!.id,
-        session_task_id: targetTask.id,
       },
       headers: {
         'x-forwarded-for': '197.210.55.10',
@@ -50,13 +47,13 @@ describe('Secure Submission Backend & Business Rules', () => {
     // Resolves volunteer name on the server
     expect(responseBody.submission.volunteer_name).toBe('Emeka Nwosu');
     expect(responseBody.submission.volunteer_id).toBe('LLO-VOL-004');
-    expect(responseBody.submission.task_title).toBe(targetTask.title);
+    expect(responseBody.submission.session_name).toBe(openSlot!.name);
     expect(responseBody.submission.submitted_at_lagos).toContain('WAT');
   });
 
   it('rejects nonexistent or unregistered volunteer IDs', async () => {
     const schedule = dataStore.getPublicSchedule();
-    const openSlot = schedule.slots.find(s => s.is_open && s.tasks.length > 0)!;
+    const openSlot = schedule.slots.find(s => s.is_open)!;
 
     let responseStatus = 0;
     let responseBody: any = null;
@@ -66,7 +63,6 @@ describe('Secure Submission Backend & Business Rules', () => {
       body: {
         volunteer_id: 'LLO-VOL-999', // nonexistent
         session_slot_id: openSlot.id,
-        session_task_id: openSlot.tasks[0].id,
       },
     };
 
@@ -92,7 +88,7 @@ describe('Secure Submission Backend & Business Rules', () => {
   it('rejects inactive or deactivated volunteer accounts', async () => {
     // In default seed data, LLO-VOL-007 (Blessing Okafor) is inactive (is_active = false)
     const schedule = dataStore.getPublicSchedule();
-    const openSlot = schedule.slots.find(s => s.is_open && s.tasks.length > 0)!;
+    const openSlot = schedule.slots.find(s => s.is_open)!;
 
     let responseStatus = 0;
     let responseBody: any = null;
@@ -102,7 +98,6 @@ describe('Secure Submission Backend & Business Rules', () => {
       body: {
         volunteer_id: 'LLO-VOL-007', // Inactive volunteer
         session_slot_id: openSlot.id,
-        session_task_id: openSlot.tasks[0].id,
       },
     };
 
@@ -125,13 +120,7 @@ describe('Secure Submission Backend & Business Rules', () => {
     expect(responseBody.message).toContain('inactive');
   });
 
-  it('rejects task and session slot mismatch', async () => {
-    const schedule = dataStore.getPublicSchedule();
-    const slotA = schedule.slots[0];
-    const slotB = schedule.slots[1];
-
-    expect(slotA.tasks.length).toBeGreaterThan(0);
-
+  it('rejects invalid session slot ID', async () => {
     let responseStatus = 0;
     let responseBody: any = null;
 
@@ -139,8 +128,7 @@ describe('Secure Submission Backend & Business Rules', () => {
       method: 'POST',
       body: {
         volunteer_id: 'LLO-VOL-001',
-        session_slot_id: slotB.id, // slot B
-        session_task_id: slotA.tasks[0].id, // task belongs to slot A!
+        session_slot_id: 'nonexistent-slot-id',
       },
     };
 
@@ -159,7 +147,7 @@ describe('Secure Submission Backend & Business Rules', () => {
 
     expect(responseStatus).toBe(400);
     expect(responseBody.success).toBe(false);
-    expect(responseBody.error_code).toBe('TASK_SESSION_MISMATCH');
+    expect(responseBody.error_code).toBe('INVALID_SESSION');
   });
 
   it('rejects submissions when session window is closed', async () => {
@@ -179,7 +167,6 @@ describe('Secure Submission Backend & Business Rules', () => {
       body: {
         volunteer_id: 'LLO-VOL-001',
         session_slot_id: targetSlot.id,
-        session_task_id: targetSlot.tasks[0].id,
       },
     };
 
@@ -201,17 +188,15 @@ describe('Secure Submission Backend & Business Rules', () => {
     expect(responseBody.error_code).toBe('SESSION_CLOSED');
   });
 
-  it('enforces database unique constraint preventing duplicate submissions for the same task', async () => {
+  it('enforces database unique constraint preventing duplicate submissions for the same session slot', async () => {
     const schedule = dataStore.getPublicSchedule();
-    const openSlot = schedule.slots.find(s => s.is_open && s.tasks.length > 0)!;
-    const task = openSlot.tasks[0];
+    const openSlot = schedule.slots.find(s => s.is_open)!;
 
     const mockReq = {
       method: 'POST',
       body: {
         volunteer_id: 'LLO-VOL-003',
         session_slot_id: openSlot.id,
-        session_task_id: task.id,
       },
       headers: { 'x-forwarded-for': '127.0.0.1' },
     };
@@ -227,7 +212,7 @@ describe('Secure Submission Backend & Business Rules', () => {
     expect(firstCode).toBe(201);
     expect(firstRes.success).toBe(true);
 
-    // Second submission with exact same volunteer & task -> MUST BE REJECTED (409)
+    // Second submission with exact same volunteer & session slot -> MUST BE REJECTED (409)
     let secondCode = 0;
     let secondRes: any = null;
     await handleSubmission(mockReq, {
@@ -239,20 +224,18 @@ describe('Secure Submission Backend & Business Rules', () => {
     expect(secondCode).toBe(409);
     expect(secondRes.success).toBe(false);
     expect(secondRes.error_code).toBe('DUPLICATE_SUBMISSION');
-    expect(secondRes.message).toContain('Duplicate submission rejected');
+    expect(secondRes.message).toContain('Duplicate check-in rejected');
   });
 
   it('allows resubmission if an existing submission was voided by an authorized administrator', async () => {
     const schedule = dataStore.getPublicSchedule();
-    const openSlot = schedule.slots.find(s => s.is_open && s.tasks.length > 0)!;
-    const task = openSlot.tasks[0];
+    const openSlot = schedule.slots.find(s => s.is_open)!;
     const staff = dataStore.getStaff()[0];
 
     // 1. Submit
     const res1 = dataStore.submitTask({
       volunteer_id: 'LLO-VOL-004',
       session_slot_id: openSlot.id,
-      session_task_id: task.id,
     });
     expect(res1.success).toBe(true);
 
@@ -260,11 +243,10 @@ describe('Secure Submission Backend & Business Rules', () => {
     const voidRes = dataStore.voidSubmission(res1.submission!.id, 'Submitted by mistake', staff);
     expect(voidRes.success).toBe(true);
 
-    // 3. Resubmit same task -> Now permitted because old record is voided!
+    // 3. Resubmit same slot -> Now permitted because old record is voided!
     const res2 = dataStore.submitTask({
       volunteer_id: 'LLO-VOL-004',
       session_slot_id: openSlot.id,
-      session_task_id: task.id,
     });
     expect(res2.success).toBe(true);
     expect(res2.submission).toBeDefined();

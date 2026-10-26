@@ -21,7 +21,6 @@ interface Props {
 export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [search, setSearch] = useState('');
-  const [trackFilter, setTrackFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedVolunteer, setSelectedVolunteer] = useState<Volunteer | null>(null);
 
@@ -31,7 +30,6 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPhone, setNewPhone] = useState('');
-  const [newTrack, setNewTrack] = useState('General');
   const [newNotes, setNewNotes] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -47,10 +45,10 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
 
   useEffect(() => {
     loadVolunteers();
-  }, [search, trackFilter, statusFilter]);
+  }, [search, statusFilter]);
 
   const loadVolunteers = () => {
-    const list = dataStore.getVolunteers(search, trackFilter, statusFilter);
+    const list = dataStore.getVolunteers(search, statusFilter);
     setVolunteers(list);
   };
 
@@ -61,7 +59,6 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
     setNewName('');
     setNewEmail('');
     setNewPhone('');
-    setNewTrack('General');
     setNewNotes('');
     setAddError(null);
     setShowAddModal(true);
@@ -88,7 +85,6 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
         full_name: newName.trim(),
         email: newEmail.trim() || null,
         phone: newPhone.trim() || null,
-        track: newTrack,
         is_active: true,
         notes: newNotes.trim() || null,
       },
@@ -143,7 +139,6 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
         full_name: r.full_name,
         email: r.email,
         phone: r.phone,
-        track: r.track,
         is_active: true,
         notes: r.notes,
       }));
@@ -220,7 +215,7 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Search */}
         <div>
           <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
@@ -236,26 +231,6 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
               className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-linkedin"
             />
           </div>
-        </div>
-
-        {/* Track Filter */}
-        <div>
-          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-            Volunteer Track / Department
-          </label>
-          <select
-            value={trackFilter}
-            onChange={e => setTrackFilter(e.target.value)}
-            className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-linkedin"
-          >
-            <option value="">All Tracks</option>
-            <option value="Logistics">Logistics</option>
-            <option value="Media & Publicity">Media & Publicity</option>
-            <option value="Protocol">Protocol</option>
-            <option value="Technical">Technical</option>
-            <option value="Registration">Registration</option>
-            <option value="General">General</option>
-          </select>
         </div>
 
         {/* Status Filter */}
@@ -283,9 +258,8 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
               <tr>
                 <th className="py-3 px-4">Volunteer ID</th>
                 <th className="py-3 px-4">Full Name</th>
-                <th className="py-3 px-4">Track</th>
                 <th className="py-3 px-4">Contact</th>
-                <th className="py-3 px-4 text-center">Tasks Completed</th>
+                <th className="py-3 px-4 text-center">Check-Ins</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
@@ -293,7 +267,7 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
             <tbody className="divide-y divide-slate-200">
               {volunteers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">
+                  <td colSpan={6} className="py-8 text-center text-slate-400">
                     No volunteers found matching current criteria.
                   </td>
                 </tr>
@@ -322,20 +296,13 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
                       )}
                     </td>
 
-                    {/* Track */}
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700">
-                        {vol.track}
-                      </span>
-                    </td>
-
                     {/* Contact */}
                     <td className="py-3 px-4 whitespace-nowrap">
                       <span className="block text-slate-700">{vol.email || '–'}</span>
                       <span className="text-[10px] text-slate-400 font-mono">{vol.phone || '–'}</span>
                     </td>
 
-                    {/* Task count */}
+                    {/* Check-ins count */}
                     <td className="py-3 px-4 text-center whitespace-nowrap">
                       <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded">
                         {vol.submission_count || 0}
@@ -475,31 +442,13 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
 
               <div>
                 <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
-                  Volunteer Track / Department
-                </label>
-                <select
-                  value={newTrack}
-                  onChange={e => setNewTrack(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-linkedin"
-                >
-                  <option value="General">General Support</option>
-                  <option value="Logistics">Logistics</option>
-                  <option value="Media & Publicity">Media & Publicity</option>
-                  <option value="Protocol">Protocol</option>
-                  <option value="Technical">Technical</option>
-                  <option value="Registration">Registration</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1">
                   Notes / Role Brief
                 </label>
                 <textarea
                   rows={2}
                   value={newNotes}
                   onChange={e => setNewNotes(e.target.value)}
-                  placeholder="e.g. Morning team lead, photographer..."
+                  placeholder="e.g. Volunteer notes, preferred session..."
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-linkedin"
                 />
               </div>
@@ -557,7 +506,7 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
             <div className="space-y-3 text-xs text-slate-600">
               <p>
                 Upload a CSV file containing volunteer rosters. Supported headers:
-                <code className="text-linkedin font-mono ml-1">volunteer_id, full_name, email, phone, track, notes</code>
+                <code className="text-linkedin font-mono ml-1">volunteer_id, full_name, email, phone, notes</code>
               </p>
 
               <div>
@@ -580,7 +529,7 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
                   rows={5}
                   value={csvText}
                   onChange={e => setCsvText(e.target.value)}
-                  placeholder="volunteer_id,full_name,email,phone,track&#10;LLO-VOL-010,Ibrahim Musa,ibrahim@example.com,+23480...,Logistics"
+                  placeholder="volunteer_id,full_name,email,phone&#10;LLO-VOL-010,Ibrahim Musa,ibrahim@example.com,+23480..."
                   className="w-full font-mono text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-linkedin"
                 />
               </div>
@@ -624,8 +573,8 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
             </p>
 
             <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-[11px] text-amber-800 mb-4">
-              <strong>Notice:</strong> Deactivating an ID prevents new task submissions, but does
-              <strong> not delete</strong> any existing historical submissions or records.
+              <strong>Notice:</strong> Deactivating an ID prevents new check-ins, but does
+              <strong> not delete</strong> any existing historical check-ins or records.
             </div>
 
             <div className="flex items-center justify-end space-x-2">

@@ -46,8 +46,6 @@ export const VolunteerDetailModal: React.FC<Props> = ({ volunteer, onClose }) =>
               </div>
               <div className="flex items-center space-x-3 text-xs text-slate-500 mt-0.5">
                 <span className="font-mono font-bold text-linkedin">{volunteer.volunteer_id}</span>
-                <span>•</span>
-                <span className="font-medium text-slate-700">Track: {volunteer.track}</span>
               </div>
             </div>
           </div>
@@ -65,8 +63,8 @@ export const VolunteerDetailModal: React.FC<Props> = ({ volunteer, onClose }) =>
           {/* Volunteer Summary Stats & Contact Details */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="text-[11px] font-bold text-slate-500 uppercase block">Total Completed</span>
-              <span className="text-xl font-black text-slate-900">{totalAttended} Tasks</span>
+              <span className="text-[11px] font-bold text-slate-500 uppercase block">Total Check-Ins</span>
+              <span className="text-xl font-black text-slate-900">{totalAttended}</span>
             </div>
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
               <span className="text-[11px] font-bold text-slate-500 uppercase block">Active Days</span>

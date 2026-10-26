@@ -118,7 +118,7 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
         {/* Search Input */}
         <div>
           <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-            Search Volunteer / Task
+            Search Volunteer
           </label>
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -126,7 +126,7 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Name, ID (e.g. LLO-VOL-001)..."
+              placeholder="Name or ID (e.g. LLO-VOL-001)..."
               className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-linkedin"
             />
           </div>
@@ -192,7 +192,6 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
                 <th className="py-3 px-4">Day & Date</th>
                 <th className="py-3 px-4">Session</th>
                 <th className="py-3 px-4">Volunteer</th>
-                <th className="py-3 px-4">Task Completed</th>
                 <th className="py-3 px-4">Timestamp (WAT)</th>
                 <th className="py-3 px-4">Status</th>
                 {canVoid && <th className="py-3 px-4 text-right">Actions</th>}
@@ -201,7 +200,7 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
             <tbody className="divide-y divide-slate-200">
               {submissions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">
+                  <td colSpan={6} className="py-8 text-center text-slate-400">
                     No participation submissions match the selected filters.
                   </td>
                 </tr>
@@ -239,19 +238,6 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
                         </span>
                         <span className="font-mono text-[11px] text-linkedin font-semibold">
                           {sub.volunteer?.volunteer_id}
-                        </span>
-                        <span className="text-[10px] text-slate-500 ml-1">
-                          ({sub.volunteer?.track})
-                        </span>
-                      </td>
-
-                      {/* Task */}
-                      <td className="py-3 px-4 max-w-xs">
-                        <span className="font-medium text-slate-800 block">
-                          {sub.task?.title}
-                        </span>
-                        <span className="text-[10px] text-slate-500">
-                          {sub.task?.category}
                         </span>
                       </td>
 
@@ -331,8 +317,8 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
                 <code>{voidTarget.volunteer?.volunteer_id}</code>).
               </p>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <span className="block font-semibold text-slate-700">{voidTarget.task?.title}</span>
-                <span className="text-slate-500">{voidTarget.slot?.name}</span>
+                <span className="block font-semibold text-slate-700">{voidTarget.slot?.name}</span>
+                <span className="text-slate-500">Day {voidTarget.day?.day_number} ({voidTarget.day?.calendar_date})</span>
               </div>
               <p className="text-[11px] text-slate-500">
                 This will mark the record as voided and preserve an immutable audit trail.
@@ -353,7 +339,7 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
                   rows={3}
                   value={voidReason}
                   onChange={e => setVoidReason(e.target.value)}
-                  placeholder="e.g. Volunteer reported incorrect task by mistake, duplicate entry, coordinator review..."
+                  placeholder="e.g. Volunteer checked in by mistake, duplicate entry, coordinator review..."
                   className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs focus:bg-white focus:border-linkedin"
                   required
                 />

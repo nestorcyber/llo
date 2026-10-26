@@ -7,7 +7,6 @@ export interface ParsedVolunteerRow {
   full_name: string;
   email: string | null;
   phone: string | null;
-  track: string;
   notes: string | null;
   isValid: boolean;
   errors: string[];
@@ -23,7 +22,7 @@ export interface CsvParseResult {
 
 /**
  * Parses raw CSV text for volunteer records.
- * Supports headers: volunteer_id (or id), full_name (or name), email, phone, track, notes
+ * Supports headers: volunteer_id (or id), full_name (or name), email, phone, notes
  */
 export function parseVolunteersCsv(csvContent: string): CsvParseResult {
   const lines = csvContent.split(/\r\n|\n|\r/).filter(line => line.trim().length > 0);
@@ -39,7 +38,6 @@ export function parseVolunteersCsv(csvContent: string): CsvParseResult {
   const nameIdx = headers.findIndex(h => h === 'fullname' || h === 'name');
   const emailIdx = headers.findIndex(h => h === 'email' || h === 'emailaddress');
   const phoneIdx = headers.findIndex(h => h === 'phone' || h === 'phonenumber' || h === 'mobile');
-  const trackIdx = headers.findIndex(h => h === 'track' || h === 'department' || h === 'role');
   const notesIdx = headers.findIndex(h => h === 'notes' || h === 'note' || h === 'comments');
 
   const seenIds = new Set<string>();
@@ -57,7 +55,6 @@ export function parseVolunteersCsv(csvContent: string): CsvParseResult {
     const rawName = nameIdx !== -1 && values[nameIdx] ? values[nameIdx].trim() : '';
     const rawEmail = emailIdx !== -1 && values[emailIdx] ? values[emailIdx].trim() : null;
     const rawPhone = phoneIdx !== -1 && values[phoneIdx] ? values[phoneIdx].trim() : null;
-    const rawTrack = trackIdx !== -1 && values[trackIdx] ? values[trackIdx].trim() : 'General';
     const rawNotes = notesIdx !== -1 && values[notesIdx] ? values[notesIdx].trim() : null;
 
     const normalizedId = normalizeVolunteerId(rawId);
@@ -82,7 +79,6 @@ export function parseVolunteersCsv(csvContent: string): CsvParseResult {
       full_name: rawName,
       email: rawEmail || null,
       phone: rawPhone || null,
-      track: rawTrack || 'General',
       notes: rawNotes || null,
       isValid: errors.length === 0,
       errors,
@@ -131,20 +127,17 @@ export function parseCsvLine(line: string): string[] {
 }
 
 /**
- * Builds CSV string for Attendance Submissions with Formula Injection Protection
+ * Builds CSV string for Attendance Check-Ins with Formula Injection Protection
  */
 export function generateAttendanceCsv(submissions: TaskSubmission[]): string {
   const headers = [
-    'Submission ID',
+    'Check-in ID',
     'Programme Day',
     'Calendar Date',
     'Session',
     'Volunteer ID',
     'Volunteer Name',
-    'Volunteer Track',
-    'Task Completed',
-    'Task Category',
-    'Submission Time (WAT)',
+    'Check-in Time (WAT)',
     'Status',
     'Void Reason',
   ];
@@ -159,9 +152,6 @@ export function generateAttendanceCsv(submissions: TaskSubmission[]): string {
       sanitizeCsvCell(sub.slot?.name || ''),
       sanitizeCsvCell(sub.volunteer?.volunteer_id || ''),
       sanitizeCsvCell(sub.volunteer?.full_name || ''),
-      sanitizeCsvCell(sub.volunteer?.track || ''),
-      sanitizeCsvCell(sub.task?.title || ''),
-      sanitizeCsvCell(sub.task?.category || ''),
       sanitizeCsvCell(formatLagosDateTime(sub.submitted_at)),
       sanitizeCsvCell(sub.status.toUpperCase()),
       sanitizeCsvCell(sub.void_reason || ''),
@@ -178,10 +168,10 @@ export function generateVolunteersCsv(volunteers: Volunteer[]): string {
   const headers = [
     'Volunteer ID',
     'Full Name',
-    'Track',
     'Email',
     'Phone',
     'Status',
+    'Total Check-Ins',
     'Notes',
     'Created At (WAT)',
   ];
@@ -192,10 +182,10 @@ export function generateVolunteersCsv(volunteers: Volunteer[]): string {
     return [
       sanitizeCsvCell(vol.volunteer_id),
       sanitizeCsvCell(vol.full_name),
-      sanitizeCsvCell(vol.track),
       sanitizeCsvCell(vol.email || ''),
       sanitizeCsvCell(vol.phone || ''),
       sanitizeCsvCell(vol.is_active ? 'Active' : 'Inactive'),
+      sanitizeCsvCell(vol.submission_count || 0),
       sanitizeCsvCell(vol.notes || ''),
       sanitizeCsvCell(formatLagosDateTime(vol.created_at)),
     ].join(',');

@@ -26,7 +26,6 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
   const [loadingSchedule, setLoadingSchedule] = useState(true);
   const [volunteerId, setVolunteerId] = useState('');
   const [selectedSlotId, setSelectedSlotId] = useState<string>('');
-  const [selectedTaskId, setSelectedTaskId] = useState<string>('');
   const [pin, setPin] = useState('');
   const [showPinInput, setShowPinInput] = useState(false);
 
@@ -56,9 +55,6 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
       const openSlot = data.slots.find(s => s.is_open) || data.slots[0];
       if (openSlot) {
         setSelectedSlotId(openSlot.id);
-        if (openSlot.tasks && openSlot.tasks.length > 0) {
-          setSelectedTaskId(openSlot.tasks[0].id);
-        }
       }
     } catch (err) {
       console.error('Failed to load schedule:', err);
@@ -67,17 +63,7 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
     }
   }
 
-  // When slot changes, update selected task
   const currentSlot = scheduleData?.slots.find(s => s.id === selectedSlotId);
-  const availableTasks = currentSlot?.tasks || [];
-
-  useEffect(() => {
-    if (availableTasks.length > 0 && !availableTasks.some(t => t.id === selectedTaskId)) {
-      setSelectedTaskId(availableTasks[0].id);
-    } else if (availableTasks.length === 0) {
-      setSelectedTaskId('');
-    }
-  }, [selectedSlotId, availableTasks, selectedTaskId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,13 +87,8 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
       return;
     }
 
-    if (!selectedTaskId) {
-      setFormError('Please select the task you completed.');
-      return;
-    }
-
     if (currentSlot && !currentSlot.is_open) {
-      setFormError(`The ${currentSlot.name} is currently closed for submissions.`);
+      setFormError(`The ${currentSlot.name} is currently closed for check-in.`);
       return;
     }
 
@@ -119,7 +100,6 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
       const result = await submitVolunteerTask({
         volunteer_id: normalized,
         session_slot_id: selectedSlotId,
-        session_task_id: selectedTaskId,
         pin: pin || undefined,
       });
 
@@ -245,12 +225,6 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
                   {submissionResult.submission.session_name}
                 </span>
               </div>
-              <div className="flex flex-col pb-2 border-b border-slate-200">
-                <span className="text-slate-500 mb-1">Task Completed:</span>
-                <span className="font-medium text-linkedin-dark bg-blue-50 px-2 py-1 rounded">
-                  {submissionResult.submission.task_title}
-                </span>
-              </div>
               <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
                 <span>Timestamp:</span>
                 <span className="font-mono">{submissionResult.submission.submitted_at_lagos}</span>
@@ -261,7 +235,7 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
               onClick={handleResetForAnother}
               className="mt-6 w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition text-sm flex items-center justify-center space-x-2"
             >
-              <span>Check in another task or session</span>
+              <span>Check in another session or volunteer</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -271,9 +245,9 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
         {(!submissionResult || !submissionResult.success) && scheduleData && (
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
             <div className="mb-5 pb-4 border-b border-slate-100">
-              <h2 className="text-lg font-bold text-slate-900">Volunteer Task Check-In</h2>
+              <h2 className="text-lg font-bold text-slate-900">Volunteer Session Check-In</h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                No login required. Enter your assigned ID to report completed work.
+                No login required. Enter your assigned ID to check in.
               </p>
             </div>
 
@@ -307,14 +281,14 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
                 <div>
                   <p className="font-bold mb-1">
                     {submissionResult.error_code === 'DUPLICATE_SUBMISSION'
-                      ? 'Already Submitted'
+                      ? 'Already Checked In'
                       : submissionResult.error_code === 'SESSION_CLOSED'
                       ? 'Session Window Closed'
                       : submissionResult.error_code === 'INVALID_VOLUNTEER_ID'
                       ? 'Volunteer ID Not Found'
                       : submissionResult.error_code === 'INACTIVE_VOLUNTEER'
                       ? 'Volunteer Account Inactive'
-                      : 'Submission Error'}
+                      : 'Check-in Error'}
                   </p>
                   <p className="leading-relaxed">{submissionResult.message}</p>
                 </div>
@@ -350,9 +324,9 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
                 <span className="text-[11px] text-slate-500 block mb-1.5">Quick Demo IDs:</span>
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    { id: 'LLO-VOL-001', name: 'Chinedu (Logistics)' },
-                    { id: 'LLO-VOL-002', name: 'Amina (Media)' },
-                    { id: 'LLO-VOL-003', name: 'Ngozi (Protocol)' },
+                    { id: 'LLO-VOL-001', name: 'Chinedu' },
+                    { id: 'LLO-VOL-002', name: 'Amina' },
+                    { id: 'LLO-VOL-003', name: 'Ngozi' },
                     { id: 'LLO-VOL-007', name: 'Blessing (Inactive)' },
                   ].map(item => (
                     <button
@@ -365,7 +339,7 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
                           : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                       }`}
                     >
-                      {item.id}
+                      {item.id} ({item.name})
                     </button>
                   ))}
                 </div>
@@ -373,7 +347,7 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
             </div>
 
             {/* Field 2: Programme Session Selection */}
-            <div className="mb-5">
+            <div className="mb-6">
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
                 2. Programme Session <span className="text-red-500">*</span>
               </label>
@@ -437,48 +411,6 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
               </div>
             </div>
 
-            {/* Field 3: Task Selection */}
-            <div className="mb-6">
-              <label htmlFor="session_task" className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                3. Completed Task <span className="text-red-500">*</span>
-              </label>
-
-              {availableTasks.length === 0 ? (
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-center text-xs text-slate-500">
-                  No active tasks configured for this session slot yet.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <select
-                    id="session_task"
-                    value={selectedTaskId}
-                    onChange={e => setSelectedTaskId(e.target.value)}
-                    disabled={isSubmitting}
-                    className="w-full px-3.5 py-3 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-linkedin focus:ring-2 focus:ring-linkedin/20 transition font-medium text-slate-800"
-                    required
-                  >
-                    {availableTasks.map(task => (
-                      <option key={task.id} value={task.id}>
-                        [{task.category}] {task.title}
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Selected Task Details preview */}
-                  {selectedTaskId && (() => {
-                    const task = availableTasks.find(t => t.id === selectedTaskId);
-                    if (!task || !task.description) return null;
-                    return (
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600">
-                        <span className="font-semibold text-slate-700">Task Scope: </span>
-                        {task.description}
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-
             {/* Optional PIN toggle (Architectural readiness for PIN auth) */}
             <div className="mb-6">
               <button
@@ -509,7 +441,7 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isSubmitting || !selectedSlotId || !selectedTaskId || (currentSlot && !currentSlot.is_open)}
+              disabled={isSubmitting || !selectedSlotId || (currentSlot && !currentSlot.is_open)}
               className={`w-full py-3.5 px-4 rounded-xl text-white font-bold text-sm shadow-md transition flex items-center justify-center space-x-2 ${
                 isSubmitting || (currentSlot && !currentSlot.is_open)
                   ? 'bg-slate-400 cursor-not-allowed opacity-80'
@@ -526,7 +458,7 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  <span>Submit Task Participation</span>
+                  <span>Check In Now</span>
                 </>
               )}
             </button>
@@ -535,7 +467,7 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
             <div className="mt-4 flex items-start space-x-2 text-[11px] text-slate-500">
               <Info className="w-3.5 h-3.5 text-slate-400 flex-shrink-0 mt-0.5" />
               <span>
-                Submissions are timestamped on the server in Africa/Lagos time. You may only submit each task once per session.
+                Submissions are timestamped on the server in Africa/Lagos time. You may only check in once per session.
               </span>
             </div>
           </form>

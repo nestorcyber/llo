@@ -1,6 +1,5 @@
 export type ProgrammeStatus = 'draft' | 'active' | 'completed' | 'archived';
 export type SessionCode = 'morning' | 'afternoon' | 'evening';
-export type TaskStatus = 'draft' | 'open' | 'closed' | 'cancelled';
 export type SubmissionStatus = 'reported' | 'verified' | 'voided';
 export type StaffRole = 'owner' | 'manager' | 'viewer';
 
@@ -45,24 +44,12 @@ export interface SessionSlot {
   window_end?: string;
 }
 
-export interface SessionTask {
-  id: string;
-  session_slot_id: string;
-  title: string;
-  description: string | null;
-  category: string;
-  status: TaskStatus;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Volunteer {
   id: string;
   volunteer_id: string; // e.g. LLO-VOL-001
   full_name: string;
   email: string | null;
   phone: string | null;
-  track: string;
   is_active: boolean;
   pin_hash?: string | null;
   notes: string | null;
@@ -86,7 +73,6 @@ export interface TaskSubmission {
   programme_id: string;
   programme_day_id: string;
   session_slot_id: string;
-  session_task_id: string;
   volunteer_id: string;
   status: SubmissionStatus;
   submitted_at: string; // ISO 8601 timestamptz
@@ -99,11 +85,6 @@ export interface TaskSubmission {
   volunteer?: {
     volunteer_id: string;
     full_name: string;
-    track: string;
-  };
-  task?: {
-    title: string;
-    category: string;
   };
   slot?: {
     session_code: SessionCode;
@@ -148,7 +129,7 @@ export interface PublicScheduleData {
   server_time: string; // ISO timestamp
   server_lagos_time: string; // Human readable formatted Lagos time
   slots: Array<SessionSlot & {
-    tasks: SessionTask[];
+    checkins_count?: number;
   }>;
   available_days?: Array<{
     id: string;
@@ -160,7 +141,6 @@ export interface PublicScheduleData {
 
 export interface SubmissionPayload {
   volunteer_id: string;
-  session_task_id: string;
   session_slot_id: string;
   pin?: string; // Optional private PIN hook
 }
@@ -172,7 +152,6 @@ export interface SubmissionResult {
     id: string;
     volunteer_id: string;
     volunteer_name: string;
-    task_title: string;
     session_name: string;
     day_number: number;
     submitted_at: string;
@@ -181,9 +160,7 @@ export interface SubmissionResult {
   error_code?:
     | 'INVALID_VOLUNTEER_ID'
     | 'INACTIVE_VOLUNTEER'
-    | 'INVALID_TASK'
     | 'INVALID_SESSION'
-    | 'TASK_SESSION_MISMATCH'
     | 'SESSION_CLOSED'
     | 'DUPLICATE_SUBMISSION'
     | 'RATE_LIMITED'
@@ -194,8 +171,8 @@ export interface DashboardMetrics {
   total_volunteers: number;
   active_volunteers_count: number;
   unique_volunteers_today: number;
-  total_submissions: number;
-  completion_rate_percentage: number;
+  total_submissions: number; // total check-ins
+  attendance_rate_percentage: number;
   session_counts: {
     morning: number;
     afternoon: number;
@@ -207,19 +184,10 @@ export interface DashboardMetrics {
     unique_volunteers: number;
     total_submissions: number;
   }>;
-  most_completed_tasks: Array<{
-    task_id: string;
-    title: string;
-    category: string;
-    session_name: string;
-    count: number;
-  }>;
-  least_completed_tasks: Array<{
-    task_id: string;
-    title: string;
-    category: string;
-    session_name: string;
-    count: number;
+  top_active_volunteers: Array<{
+    volunteer_id: string;
+    full_name: string;
+    checkins_count: number;
   }>;
   volunteer_consistency: {
     high: number; // >= 70% active days
