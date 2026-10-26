@@ -984,6 +984,7 @@ class Store {
     };
 
     let savedToLiveDb = false;
+    let failureReason: string | null = null;
 
     if (typeof window !== 'undefined') {
       // 1. Try serverless API first
@@ -993,17 +994,21 @@ class Store {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'add_volunteer', payload: { ...vol, volunteer_id: normalizedId } }),
         });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.success && json.data) {
-            createdRecord = json.data;
-            savedToLiveDb = true;
-          } else if (json.message) {
-            return { success: false, message: json.message };
-          }
+
+        const json = await res.json().catch(() => null);
+
+        if (res.ok && json?.success && json?.data) {
+          createdRecord = json.data;
+          savedToLiveDb = true;
+          failureReason = null;
+        } else if (json && json.message) {
+          failureReason = json.message;
+        } else {
+          failureReason = `Server responded with status ${res.status}: ${res.statusText || 'Unknown error'}`;
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn('Could not reach /api/admin-action:', err);
+        failureReason = err?.message || 'Network connection error to /api/admin-action';
       }
 
       // 2. Direct Supabase client fallback
@@ -1025,10 +1030,22 @@ class Store {
           if (!dbErr && dbData) {
             createdRecord = dbData;
             savedToLiveDb = true;
+            failureReason = null;
+          } else if (dbErr) {
+            failureReason = `Direct DB insert error (${dbErr.code}): ${dbErr.message}`;
           }
-        } catch (dbErr) {
+        } catch (dbErr: any) {
           console.warn('Direct Supabase insert fallback error:', dbErr);
+          failureReason = dbErr?.message || 'Direct Supabase client error';
         }
+      }
+
+      // When Supabase is configured, reject silent failures so the user sees the real cause
+      if (!savedToLiveDb && isSupabaseConfigured) {
+        return {
+          success: false,
+          message: failureReason || 'Failed to persist volunteer to Supabase database. Please ensure SUPABASE_SERVICE_ROLE_KEY is set in your server/Vercel environment variables.',
+        };
       }
     }
 

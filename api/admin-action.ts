@@ -6,10 +6,10 @@ export async function handleAdminAction(req: any, res: any) {
   }
 
   if (!isServerSupabaseConfigured || !supabaseServer) {
-    return res.status(200).json({
+    return res.status(503).json({
       success: false,
       live: false,
-      message: 'Supabase server is not configured, running in local fallback',
+      message: 'Supabase server is not configured. Please ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set in server/Vercel environment variables.',
     });
   }
 
@@ -40,6 +40,12 @@ export async function handleAdminAction(req: any, res: any) {
             return res.status(400).json({
               success: false,
               message: `Volunteer ID "${payload.volunteer_id}" already exists in the database.`,
+            });
+          }
+          if (error.code === '42501' || error.message?.includes('violates row-level security')) {
+            return res.status(500).json({
+              success: false,
+              message: 'Supabase Row Level Security blocked the insert. Please verify that SUPABASE_SERVICE_ROLE_KEY is set in your Vercel/server environment variables.',
             });
           }
           throw error;
@@ -166,9 +172,12 @@ export async function handleAdminAction(req: any, res: any) {
     }
   } catch (err: any) {
     console.error(`Error executing admin action ${action}:`, err);
+    const message = (err?.code === '42501' || err?.message?.includes('violates row-level security'))
+      ? 'Supabase Row Level Security blocked the operation. Please configure SUPABASE_SERVICE_ROLE_KEY in your server/Vercel environment variables.'
+      : err?.message || 'Database mutation failed';
     return res.status(500).json({
       success: false,
-      message: err?.message || 'Database mutation failed',
+      message,
     });
   }
 }

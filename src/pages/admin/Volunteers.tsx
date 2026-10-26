@@ -49,8 +49,19 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
 
   // Status Toggle Modal (Confirmation)
   const [toggleTarget, setToggleTarget] = useState<Volunteer | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const canManage = RolePermissions.canManageVolunteers(currentStaff.role);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await dataStore.syncWithLiveDatabase();
+      loadVolunteers();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   useEffect(() => {
     loadVolunteers();
@@ -205,7 +216,25 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
       {/* Title & Action Buttons */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900">Volunteer Directory & IDs</h1>
+          <div className="flex items-center space-x-2.5">
+            <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900">Volunteer Directory & IDs</h1>
+            <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center space-x-1 border ${
+              dataStore.isLiveConnected()
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-amber-50 text-amber-700 border-amber-200'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${dataStore.isLiveConnected() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              <span>{dataStore.isLiveConnected() ? 'Supabase Live' : 'Local Fallback'}</span>
+            </div>
+            <button
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition"
+              title="Refresh roster from Supabase database"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-blue-600' : ''}`} />
+            </button>
+          </div>
           <p className="text-xs text-slate-500 mt-0.5">
             Manage assigned volunteer credentials, track rosters, and inspect 30-day activity matrices
           </p>
@@ -416,8 +445,12 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
             </div>
 
             {addError && (
-              <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-xs font-medium">
-                {addError}
+              <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-medium flex items-start space-x-2.5">
+                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <div className="flex-1 leading-relaxed">
+                  <span className="font-bold block mb-0.5">Database Error</span>
+                  {addError}
+                </div>
               </div>
             )}
 
