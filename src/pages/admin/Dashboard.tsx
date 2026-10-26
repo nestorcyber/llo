@@ -11,14 +11,27 @@ import {
   Filter,
   RefreshCw,
 } from 'lucide-react';
-import { DashboardMetrics, ProgrammeDay } from '../../types';
+import { DashboardMetrics, ProgrammeDay, Volunteer } from '../../types';
 import { dataStore } from '../../lib/data-store';
 
-export const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onNavigateToVolunteers?: () => void;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToVolunteers }) => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [selectedDayNumber, setSelectedDayNumber] = useState<number | 'all'>('all');
   const [programmeDays, setProgrammeDays] = useState<ProgrammeDay[]>([]);
+  const [volunteersList, setVolunteersList] = useState<Volunteer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    // Proactively sync live database on dashboard mount
+    dataStore.syncWithLiveDatabase().then(() => {
+      loadData();
+    });
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -37,10 +50,21 @@ export const Dashboard: React.FC = () => {
       const filterArgs = selectedDayNumber === 'all' ? undefined : { day_number: selectedDayNumber };
       const res = dataStore.getDashboardMetrics(filterArgs);
       setMetrics(res);
+      setVolunteersList(dataStore.getVolunteers());
     } catch (err) {
       console.error('Failed to load dashboard metrics:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await dataStore.syncWithLiveDatabase();
+      loadData();
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -59,9 +83,27 @@ export const Dashboard: React.FC = () => {
       {/* Page Title & Filter Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
         <div>
-          <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900">Operations Dashboard</h1>
+          <div className="flex items-center space-x-2.5">
+            <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900">Operations Dashboard</h1>
+            <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold flex items-center space-x-1 border ${
+              dataStore.isLiveConnected()
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : 'bg-amber-50 text-amber-700 border-amber-200'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${dataStore.isLiveConnected() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+              <span>{dataStore.isLiveConnected() ? 'Supabase Live' : 'Local Fallback'}</span>
+            </div>
+            <button
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition"
+              title="Refresh dashboard metrics and volunteer roster from Supabase"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-blue-600' : ''}`} />
+            </button>
+          </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Real-time analytics and participation metrics for LinkedIn Local Owerri
+            Real-time analytics, volunteer roster, and participation metrics for LinkedIn Local Owerri
           </p>
         </div>
 
@@ -81,14 +123,6 @@ export const Dashboard: React.FC = () => {
               </option>
             ))}
           </select>
-
-          <button
-            onClick={loadData}
-            title="Refresh analytics"
-            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-50 rounded-xl border border-slate-200 transition"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
@@ -159,6 +193,69 @@ export const Dashboard: React.FC = () => {
             Based on active volunteer session opportunities
           </div>
         </div>
+      </div>
+
+      {/* Registered Volunteers Roster (Live from Database) */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+          <div className="flex items-center space-x-2">
+            <Users className="w-4 h-4 text-blue-600" />
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Registered Volunteers Roster</h2>
+              <p className="text-xs text-slate-500">
+                Live database volunteers ({volunteersList.length} verified in database)
+              </p>
+            </div>
+          </div>
+          {onNavigateToVolunteers && (
+            <button
+              onClick={onNavigateToVolunteers}
+              className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+            >
+              <span>Manage Full Directory &rarr;</span>
+            </button>
+          )}
+        </div>
+
+        {volunteersList.length === 0 ? (
+          <div className="text-center py-6 text-xs text-slate-400">
+            No volunteers found in database.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {volunteersList.map(vol => (
+              <div
+                key={vol.id}
+                className="p-3 bg-slate-50/80 hover:bg-blue-50/40 rounded-xl border border-slate-200/70 transition flex items-center justify-between space-x-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-mono text-[11px] font-bold text-blue-700 bg-blue-100/60 px-1.5 py-0.5 rounded">
+                      {vol.volunteer_id}
+                    </span>
+                    <span className="font-bold text-xs text-slate-900 truncate">
+                      {vol.full_name}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                    {vol.email || vol.phone || vol.notes || 'General Volunteer'}
+                  </div>
+                </div>
+                <div>
+                  <span
+                    className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                      vol.is_active
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-rose-100 text-rose-800'
+                    }`}
+                  >
+                    {vol.is_active ? 'ACTIVE' : 'INACTIVE'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Session Breakdown Section */}
