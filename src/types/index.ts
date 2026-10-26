@@ -13,6 +13,7 @@ export interface Programme {
   duration_days: number;
   timezone: string; // 'Africa/Lagos'
   status: ProgrammeStatus;
+  active_day_number?: number | null; // Configured active day for volunteer access
   created_at: string;
   updated_at: string;
 }
@@ -135,17 +136,25 @@ export interface PublicScheduleData {
     duration_days: number;
     timezone: string;
     status: ProgrammeStatus;
+    active_day_number?: number | null;
   };
   current_day: {
     id: string;
     day_number: number;
     calendar_date: string;
     theme: string | null;
+    is_active?: boolean;
   };
   server_time: string; // ISO timestamp
   server_lagos_time: string; // Human readable formatted Lagos time
   slots: Array<SessionSlot & {
     tasks: SessionTask[];
+  }>;
+  available_days?: Array<{
+    id: string;
+    day_number: number;
+    calendar_date: string;
+    is_active: boolean;
   }>;
 }
 

@@ -57,6 +57,7 @@ function initializeDefaultData(): StoreState {
       duration_days: 30,
       timezone: 'Africa/Lagos',
       status: 'active',
+      active_day_number: 1,
       created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -465,17 +466,34 @@ class Store {
   // Public Schedule & Check-in Methods
   // =========================================================================
 
-  public getPublicSchedule(): PublicScheduleData {
+  public getPublicSchedule(requestedDayNumber?: number): PublicScheduleData {
     const activeProg = this.state.programmes.find(p => p.status === 'active') || this.state.programmes[0];
     const todayLagos = getLagosDateString();
 
-    // Find day corresponding to today's date in Lagos, or fallback to Day 1
-    let currentDay = this.state.programme_days.find(
-      d => d.programme_id === activeProg.id && d.calendar_date === todayLagos
-    );
+    let currentDay: ProgrammeDay | undefined;
+
+    if (requestedDayNumber) {
+      currentDay = this.state.programme_days.find(
+        d => d.programme_id === activeProg.id && d.day_number === requestedDayNumber
+      );
+    }
+
+    if (!currentDay && activeProg.active_day_number) {
+      currentDay = this.state.programme_days.find(
+        d => d.programme_id === activeProg.id && d.day_number === activeProg.active_day_number
+      );
+    }
 
     if (!currentDay) {
-      currentDay = this.state.programme_days.find(d => d.programme_id === activeProg.id && d.day_number === 1)!;
+      currentDay = this.state.programme_days.find(
+        d => d.programme_id === activeProg.id && d.calendar_date === todayLagos
+      );
+    }
+
+    if (!currentDay) {
+      currentDay = this.state.programme_days.find(
+        d => d.programme_id === activeProg.id && d.day_number === 1
+      )!;
     }
 
     const daySlots = this.state.session_slots.filter(s => s.programme_day_id === currentDay!.id);
@@ -496,6 +514,15 @@ class Store {
     });
 
     const now = new Date();
+    const availableDays = this.state.programme_days
+      .filter(d => d.programme_id === activeProg.id)
+      .map(d => ({
+        id: d.id,
+        day_number: d.day_number,
+        calendar_date: d.calendar_date,
+        is_active: d.is_active,
+      }));
+
     return {
       programme: {
         id: activeProg.id,
@@ -504,16 +531,19 @@ class Store {
         duration_days: activeProg.duration_days,
         timezone: activeProg.timezone,
         status: activeProg.status,
+        active_day_number: activeProg.active_day_number || 1,
       },
       current_day: {
         id: currentDay.id,
         day_number: currentDay.day_number,
         calendar_date: currentDay.calendar_date,
         theme: currentDay.theme,
+        is_active: currentDay.is_active,
       },
       server_time: now.toISOString(),
       server_lagos_time: formatLagosDateTime(now),
       slots: enrichedSlots,
+      available_days: availableDays,
     };
   }
 
@@ -1006,6 +1036,57 @@ class Store {
     return this.state.programme_days
       .filter(d => d.programme_id === prog)
       .sort((a, b) => a.day_number - b.day_number);
+  }
+
+  public setActiveProgrammeDay(dayNumber: number, staffUser?: StaffProfile, openDaySlots = true): { success: boolean; message: string; active_day_number: number } {
+    const activeProg = this.state.programmes.find(p => p.status === 'active') || this.state.programmes[0];
+    const targetDay = this.state.programme_days.find(
+      d => d.programme_id === activeProg.id && d.day_number === dayNumber
+    );
+
+    if (!targetDay) {
+      return { success: false, message: `Programme Day ${dayNumber} does not exist.`, active_day_number: activeProg.active_day_number || 1 };
+    }
+
+    activeProg.active_day_number = dayNumber;
+    activeProg.updated_at = new Date().toISOString();
+
+    // Ensure the target day is active
+    targetDay.is_active = true;
+
+    // If openDaySlots is true, ensure slots for that day accept submissions
+    if (openDaySlots) {
+      const slots = this.state.session_slots.filter(s => s.programme_day_id === targetDay.id);
+      for (const slot of slots) {
+        slot.is_override_open = true;
+      }
+    }
+
+    this.addAuditLog(staffUser || null, 'ACTIVE_DAY_CHANGED', 'programme_day', targetDay.id, {
+      day_number: dayNumber,
+      calendar_date: targetDay.calendar_date,
+      open_slots: openDaySlots,
+    });
+
+    this.save();
+    return {
+      success: true,
+      message: `Day ${dayNumber} (${targetDay.calendar_date}) is now set as the active day for volunteer access!`,
+      active_day_number: dayNumber,
+    };
+  }
+
+  public toggleDayActive(dayId: string, isActive: boolean, staffUser?: StaffProfile) {
+    const day = this.state.programme_days.find(d => d.id === dayId);
+    if (!day) return { success: false, message: 'Day not found' };
+
+    day.is_active = isActive;
+    this.addAuditLog(staffUser || null, 'DAY_ACTIVE_TOGGLED', 'programme_day', dayId, {
+      day_number: day.day_number,
+      is_active: isActive,
+    });
+    this.save();
+    return { success: true, message: `Day ${day.day_number} active status updated to ${isActive}` };
   }
 
   public getDaySessionSlots(dayId: string) {

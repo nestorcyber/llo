@@ -19,6 +19,21 @@ AS $$
     SELECT (now() AT TIME ZONE 'Africa/Lagos')::date;
 $$;
 
+-- Function: set_programme_active_day
+-- Allows authorized administrators to activate a specific day for volunteer check-ins
+CREATE OR REPLACE FUNCTION set_programme_active_day(p_programme_id UUID, p_day_number INTEGER)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    UPDATE programmes
+    SET active_day_number = p_day_number,
+        updated_at = now()
+    WHERE id = p_programme_id;
+END;
+$$;
+
 -- Function: generate_programme_calendar
 -- Generates days (Day 1..duration_days) and 3 sessions per day for a programme
 CREATE OR REPLACE FUNCTION generate_programme_calendar(p_programme_id UUID)

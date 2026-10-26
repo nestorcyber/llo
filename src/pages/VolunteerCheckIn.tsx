@@ -46,10 +46,10 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
     return () => clearInterval(interval);
   }, []);
 
-  async function loadSchedule() {
+  async function loadSchedule(dayNumber?: number) {
     setLoadingSchedule(true);
     try {
-      const data = await fetchPublicSchedule();
+      const data = await fetchPublicSchedule(dayNumber);
       setScheduleData(data);
 
       // Auto-select first open slot, or first slot
@@ -180,10 +180,13 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
       <main className="max-w-xl w-full mx-auto px-4 py-6 flex-1">
         {/* Programme Status Bar */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center space-x-2 text-sm text-slate-700">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
             <Calendar className="w-4 h-4 text-linkedin" />
             <span className="font-semibold text-slate-900">
               {scheduleData ? `Day ${scheduleData.current_day.day_number} of ${scheduleData.programme.duration_days}` : '30-Day Programme'}
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 uppercase tracking-wide">
+              Active Day
             </span>
             <span className="text-slate-400">•</span>
             <span className="text-xs text-slate-600">

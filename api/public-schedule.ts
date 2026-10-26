@@ -7,6 +7,10 @@ export async function handlePublicSchedule(req: any, res: any) {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
+  const url = new URL(req.url || '', 'http://localhost');
+  const dayParam = url.searchParams.get('day');
+  const requestedDay = dayParam ? parseInt(dayParam, 10) : undefined;
+
   if (isServerSupabaseConfigured && supabaseServer) {
     try {
       const todayLagos = getLagosDateString();
@@ -29,7 +33,13 @@ export async function handlePublicSchedule(req: any, res: any) {
         .eq('programme_id', prog.id)
         .order('day_number', { ascending: true });
 
-      const currentDay = days?.find(d => d.calendar_date === todayLagos) || days?.[0];
+      let currentDay = requestedDay ? days?.find(d => d.day_number === requestedDay) : undefined;
+      if (!currentDay && prog.active_day_number) {
+        currentDay = days?.find(d => d.day_number === prog.active_day_number);
+      }
+      if (!currentDay) {
+        currentDay = days?.find(d => d.calendar_date === todayLagos) || days?.[0];
+      }
 
       if (!currentDay) {
         return res.status(404).json({ success: false, message: 'Programme day not found' });
@@ -65,16 +75,24 @@ export async function handlePublicSchedule(req: any, res: any) {
           duration_days: prog.duration_days,
           timezone: prog.timezone,
           status: prog.status,
+          active_day_number: prog.active_day_number || 1,
         },
         current_day: {
           id: currentDay.id,
           day_number: currentDay.day_number,
           calendar_date: currentDay.calendar_date,
           theme: currentDay.theme,
+          is_active: currentDay.is_active,
         },
         server_time: now.toISOString(),
         server_lagos_time: formatLagosDateTime(now),
         slots: enrichedSlots,
+        available_days: (days || []).map(d => ({
+          id: d.id,
+          day_number: d.day_number,
+          calendar_date: d.calendar_date,
+          is_active: d.is_active,
+        })),
       });
     } catch (err) {
       console.error('Public schedule error:', err);
@@ -82,7 +100,7 @@ export async function handlePublicSchedule(req: any, res: any) {
   }
 
   // Fallback to dataStore
-  const data = dataStore.getPublicSchedule();
+  const data = dataStore.getPublicSchedule(requestedDay);
   return res.status(200).json(data);
 }
 

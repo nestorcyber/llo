@@ -7,9 +7,10 @@ import { dataStore } from './data-store';
  * If running purely in client/offline mode, gracefully executes through local dataStore.
  */
 
-export async function fetchPublicSchedule(): Promise<PublicScheduleData> {
+export async function fetchPublicSchedule(dayNumber?: number): Promise<PublicScheduleData> {
   try {
-    const res = await fetch('/api/public-schedule', {
+    const url = dayNumber ? `/api/public-schedule?day=${dayNumber}` : '/api/public-schedule';
+    const res = await fetch(url, {
       headers: { Accept: 'application/json' },
     });
     if (res.ok) {
@@ -20,7 +21,7 @@ export async function fetchPublicSchedule(): Promise<PublicScheduleData> {
   }
 
   // Fallback to data store
-  return dataStore.getPublicSchedule();
+  return dataStore.getPublicSchedule(dayNumber);
 }
 
 export async function submitVolunteerTask(payload: SubmissionPayload): Promise<SubmissionResult> {

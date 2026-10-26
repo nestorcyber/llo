@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS programmes (
     duration_days INTEGER NOT NULL DEFAULT 30 CHECK (duration_days >= 1 AND duration_days <= 90),
     timezone TEXT NOT NULL DEFAULT 'Africa/Lagos',
     status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'completed', 'archived')),
+    active_day_number INTEGER DEFAULT 1 CHECK (active_day_number >= 1 AND active_day_number <= 90),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
