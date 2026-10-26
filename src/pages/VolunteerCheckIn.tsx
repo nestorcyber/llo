@@ -137,14 +137,12 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between font-sans">
       {/* Top Navbar */}
       <header className="bg-white border-b border-slate-200/80 sticky top-0 z-20">
-        <div className="max-w-xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <img
-              src={lloLogo}
-              alt="LinkedIn Local Owerri"
-              className="h-8 sm:h-9 object-contain"
-            />
-          </div>
+        <div className="max-w-xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-center">
+          <img
+            src={lloLogo}
+            alt="LinkedIn Local Owerri"
+            className="h-8 sm:h-9 object-contain mx-auto"
+          />
         </div>
       </header>
 
@@ -216,12 +214,6 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
           <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-9 shadow-sm">
             {/* Header section */}
             <div className="mb-6">
-              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold mb-3 shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-                <span>Programme Day {scheduleData.current_day?.day_number || 1}</span>
-                <span className="text-blue-300">•</span>
-                <span className="font-medium text-blue-600">{scheduleData.current_day?.calendar_date}</span>
-              </div>
               <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                 Volunteer Check-In
               </h2>
