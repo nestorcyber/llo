@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { StaffProfile, StaffRole } from '../../types';
 import niforixLogo from '../../assets/niforix-logo.png';
+import lloLogo from '../../assets/llo-logo.png';
 
 export type AdminTab =
   | 'dashboard'
@@ -63,22 +64,14 @@ export const AdminLayout: React.FC<Props> = ({
           <div className="flex items-center justify-between h-16">
             {/* Brand Logo & Title */}
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-heading font-extrabold text-white text-sm shadow-sm">
-                LLO
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-heading font-bold text-slate-900 text-sm sm:text-base leading-none">
-                    LinkedIn Local Owerri
-                  </span>
-                  <span className="hidden sm:inline-block text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
-                    Admin Portal
-                  </span>
-                </div>
-                <span className="text-[11px] text-slate-500 block mt-0.5">
-                  Operations & Volunteer Management
-                </span>
-              </div>
+              <img
+                src={lloLogo}
+                alt="LinkedIn Local Owerri"
+                className="h-8 sm:h-9 object-contain"
+              />
+              <span className="hidden sm:inline-block text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full ml-1">
+                Admin Portal
+              </span>
             </div>
 
             {/* Timezone & Staff User Info */}

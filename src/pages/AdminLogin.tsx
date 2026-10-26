@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Shield, Lock, Mail, ArrowLeft, AlertCircle, ArrowRight } from 'lucide-react';
+import { Lock, Mail, ArrowLeft, AlertCircle, ArrowRight } from 'lucide-react';
 import { StaffProfile, StaffRole } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { dataStore } from '../lib/data-store';
 import niforixLogo from '../assets/niforix-logo.png';
+import lloLogo from '../assets/llo-logo.png';
 
 interface Props {
   onLoginSuccess: (user: StaffProfile) => void;
@@ -120,15 +121,11 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
       <header className="bg-white border-b border-slate-200/80">
         <div className="max-w-xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-heading font-extrabold text-white text-sm tracking-wider shadow-sm">
-              LLO
-            </div>
-            <div>
-              <h1 className="font-heading text-sm sm:text-base font-bold text-slate-900 leading-tight">
-                LinkedIn Local Owerri
-              </h1>
-              <p className="text-[11px] text-slate-500">Staff Management Portal</p>
-            </div>
+            <img
+              src={lloLogo}
+              alt="LinkedIn Local Owerri"
+              className="h-7 sm:h-8 object-contain"
+            />
           </div>
 
           <button
@@ -146,9 +143,11 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
         <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-9 shadow-sm">
           {/* Header */}
           <div className="text-center mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3 border border-blue-100 shadow-sm">
-              <Shield className="w-6 h-6" />
-            </div>
+            <img
+              src={lloLogo}
+              alt="LinkedIn Local Owerri"
+              className="h-10 sm:h-11 object-contain mx-auto mb-3"
+            />
             <h2 className="font-heading text-2xl font-extrabold text-slate-900 tracking-tight">
               Staff Sign In
             </h2>

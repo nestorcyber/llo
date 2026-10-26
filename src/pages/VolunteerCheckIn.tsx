@@ -13,6 +13,7 @@ import { fetchPublicSchedule, submitVolunteerTask } from '../lib/api-client';
 import { normalizeVolunteerId, isValidVolunteerIdFormat } from '../lib/validation';
 import { formatLagosDateTime, formatSessionWindowRange } from '../lib/lagos-time';
 import niforixLogo from '../assets/niforix-logo.png';
+import lloLogo from '../assets/llo-logo.png';
 
 interface Props {
   onNavigateToAdmin?: () => void;
@@ -138,15 +139,11 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
       <header className="bg-white border-b border-slate-200/80 sticky top-0 z-20">
         <div className="max-w-xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-heading font-extrabold text-white text-sm tracking-wider shadow-sm">
-              LLO
-            </div>
-            <div>
-              <h1 className="font-heading text-sm sm:text-base font-bold text-slate-900 leading-tight">
-                LinkedIn Local Owerri
-              </h1>
-              <p className="text-[11px] text-slate-500">Volunteer Attendance</p>
-            </div>
+            <img
+              src={lloLogo}
+              alt="LinkedIn Local Owerri"
+              className="h-8 sm:h-9 object-contain"
+            />
           </div>
 
           <div className="text-right">
