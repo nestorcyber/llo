@@ -525,19 +525,13 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
 
       {/* Footer */}
       <footer className="bg-slate-100 border-t border-slate-200 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-xl mx-auto px-4 flex flex-col items-center justify-center space-y-2">
-          <p className="font-semibold text-slate-700">LinkedIn Local Owerri</p>
-          <p className="text-[11px] text-slate-400">
-            Connecting professionals, transforming communities. Volunteer Engagement Tracking System.
-          </p>
-          <div className="pt-2 flex items-center justify-center space-x-2 text-slate-600 text-xs font-medium">
-            <span>Powered by</span>
-            <img
-              src={niforixLogo}
-              alt="Niforix"
-              className="h-5 sm:h-6 object-contain inline-block"
-            />
-          </div>
+        <div className="max-w-xl mx-auto px-4 flex items-center justify-center space-x-2 text-slate-600 text-xs font-medium">
+          <span>Powered by</span>
+          <img
+            src={niforixLogo}
+            alt="Niforix"
+            className="h-5 sm:h-6 object-contain inline-block"
+          />
         </div>
       </footer>
     </div>
