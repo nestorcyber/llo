@@ -56,12 +56,19 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
   const handleManualSync = async () => {
     setIsSyncing(true);
     try {
-      await dataStore.syncWithLiveDatabase();
+      await dataStore.clearLocalCacheAndResync();
       loadVolunteers();
     } finally {
       setIsSyncing(false);
     }
   };
+
+  useEffect(() => {
+    // Sync with live database on mount
+    dataStore.syncWithLiveDatabase().then(() => {
+      loadVolunteers();
+    });
+  }, []);
 
   useEffect(() => {
     loadVolunteers();

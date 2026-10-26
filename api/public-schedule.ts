@@ -100,6 +100,9 @@ export async function handlePublicSchedule(req: any, res: any) {
 
       const nextSession = getNextSessionInfo(currentDay.calendar_date, slots || [], now);
 
+      if (res.setHeader) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      }
       return res.status(200).json({
         programme: {
           id: prog.id,
@@ -135,6 +138,9 @@ export async function handlePublicSchedule(req: any, res: any) {
   }
 
   // Fallback to dataStore
+  if (res.setHeader) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  }
   const data = dataStore.getPublicSchedule(requestedDay);
   return res.status(200).json(data);
 }

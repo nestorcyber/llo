@@ -61,7 +61,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToVolunteers }) 
   const handleManualSync = async () => {
     setIsSyncing(true);
     try {
-      await dataStore.syncWithLiveDatabase();
+      await dataStore.clearLocalCacheAndResync();
       loadData();
     } finally {
       setIsSyncing(false);

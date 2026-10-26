@@ -312,12 +312,14 @@ class Store {
       if (typeof window !== 'undefined') {
         let loaded = false;
 
-        // 1. Try serverless API endpoint first
+        // 1. Try serverless API endpoint first (with cache-busting)
         try {
-          const res = await fetch('/api/admin-data', {
-            headers: { Accept: 'application/json' },
+          const res = await fetch(`/api/admin-data?_t=${Date.now()}`, {
+            headers: { Accept: 'application/json', 'Cache-Control': 'no-cache' },
+            cache: 'no-store',
           });
-          if (res.ok) {
+          const contentType = res.headers.get('content-type') || '';
+          if (res.ok && contentType.includes('application/json')) {
             const json = await res.json();
             if (json.live && json.data) {
               const live = json.data;
@@ -331,7 +333,8 @@ class Store {
               loaded = true;
             }
           }
-        } catch {
+        } catch (apiErr) {
+          console.warn('Could not sync via /api/admin-data:', apiErr);
           // Continue to direct Supabase client fallback below
         }
 
@@ -383,6 +386,17 @@ class Store {
       this.isSyncing = false;
     }
     return false;
+  }
+
+  public async clearLocalCacheAndResync(): Promise<boolean> {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('llo_data_store');
+      } catch (err) {
+        console.warn('Could not clear local storage cache', err);
+      }
+    }
+    return this.syncWithLiveDatabase();
   }
 
   private setupRealtimeSync(): void {
