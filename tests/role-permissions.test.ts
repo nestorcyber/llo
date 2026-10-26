@@ -66,4 +66,18 @@ describe('Administrator Roles & Permission Enforcement', () => {
     const demoteRes = dataStore.updateStaffRole(secondOwner.id, 'manager', owner);
     expect(demoteRes.success).toBe(true);
   });
+
+  it('provisions default administrator accounts with updated email formats', () => {
+    const staffList = dataStore.getStaff();
+    const admin = staffList.find(s => s.email === 'admin@llo.com');
+    const manager = staffList.find(s => s.email === 'manager@llo.com');
+    const viewer = staffList.find(s => s.email === 'viewer@llo.com');
+
+    expect(admin).toBeDefined();
+    expect(admin?.role).toBe('owner');
+    expect(manager).toBeDefined();
+    expect(manager?.role).toBe('manager');
+    expect(viewer).toBeDefined();
+    expect(viewer?.role).toBe('viewer');
+  });
 });

@@ -205,7 +205,7 @@ function initializeDefaultData(): StoreState {
   const staff_profiles: StaffProfile[] = [
     {
       id: 'staff-owner-1',
-      email: 'owner@llowerri.org',
+      email: 'admin@llo.com',
       full_name: 'Ifeanyi Nwachukwu',
       role: 'owner',
       is_active: true,
@@ -214,7 +214,7 @@ function initializeDefaultData(): StoreState {
     },
     {
       id: 'staff-manager-1',
-      email: 'manager@llowerri.org',
+      email: 'manager@llo.com',
       full_name: 'Adaobi Uchendu',
       role: 'manager',
       is_active: true,
@@ -223,7 +223,7 @@ function initializeDefaultData(): StoreState {
     },
     {
       id: 'staff-viewer-1',
-      email: 'viewer@llowerri.org',
+      email: 'viewer@llo.com',
       full_name: 'Tariq Danjuma',
       role: 'viewer',
       is_active: true,
@@ -329,7 +329,16 @@ class Store {
       try {
         const saved = window.localStorage.getItem(STORAGE_KEY);
         if (saved) {
-          return JSON.parse(saved);
+          const parsed = JSON.parse(saved);
+          // Seamlessly migrate staff emails if old ones exist in storage
+          if (parsed && Array.isArray(parsed.staff_profiles)) {
+            for (const s of parsed.staff_profiles) {
+              if (s.email === 'owner@llowerri.org') s.email = 'admin@llo.com';
+              if (s.email === 'manager@llowerri.org') s.email = 'manager@llo.com';
+              if (s.email === 'viewer@llowerri.org') s.email = 'viewer@llo.com';
+            }
+          }
+          return parsed;
         }
       } catch (err) {
         console.warn('Failed to load store from localStorage', err);

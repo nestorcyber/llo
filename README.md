@@ -161,10 +161,10 @@ During local development, open `http://localhost:5173`:
 - Check-in page: `http://localhost:5173/`
 - Admin portal: `http://localhost:5173/admin`
 
-Demo credentials available in offline mode:
-- **Owner**: `owner@llowerri.org` (or click "Owner" quick button)
-- **Manager**: `manager@llowerri.org` (or click "Manager" quick button)
-- **Viewer**: `viewer@llowerri.org` (or click "Viewer" quick button)
+Staff credentials:
+- **Admin**: `admin@llo.com` (Password: `adminllo`)
+- **Manager**: `manager@llo.com` (Password: `managerllo`)
+- **Viewer**: `viewer@llo.com` (Password: `viewerllo`)
 
 Demo Volunteer IDs for check-in:
 - `LLO-VOL-001` (Chinedu Okeke, Logistics)

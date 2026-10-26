@@ -230,7 +230,7 @@ export const TeamManagement: React.FC<Props> = ({ currentStaff }) => {
                   type="email"
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
-                  placeholder="name@llowerri.org"
+                  placeholder="name@llo.com"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-linkedin"
                   required
                 />
