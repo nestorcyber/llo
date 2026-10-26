@@ -9,10 +9,8 @@ import {
   LogOut,
   ExternalLink,
   Clock,
-  RefreshCw,
 } from 'lucide-react';
 import { StaffProfile, StaffRole } from '../../types';
-import { dataStore } from '../../lib/data-store';
 
 import niforixLogo from '../../assets/niforix-logo.png';
 import lloLogo from '../../assets/llo-logo.png';
@@ -59,14 +57,6 @@ export const AdminLayout: React.FC<Props> = ({
     { id: 'audit', label: 'Audit Logs', icon: FileText },
   ];
 
-  const [isSyncing, setIsSyncing] = React.useState(false);
-
-  const handleManualSync = async () => {
-    setIsSyncing(true);
-    await dataStore.syncWithLiveDatabase();
-    setTimeout(() => setIsSyncing(false), 600);
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Top Navigation Bar */}
@@ -87,17 +77,6 @@ export const AdminLayout: React.FC<Props> = ({
 
             {/* Timezone & Staff User Info */}
             <div className="flex items-center space-x-2 sm:space-x-3">
-              {/* Supabase Live Status Indicator */}
-              <button
-                onClick={handleManualSync}
-                title="Connected to live Supabase database. Click to re-sync immediately."
-                className="flex items-center space-x-1.5 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-lg text-xs font-medium transition cursor-pointer"
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span className="hidden md:inline font-semibold">Supabase Live</span>
-                <RefreshCw className={`w-3 h-3 text-emerald-600 ${isSyncing ? 'animate-spin' : ''}`} />
-              </button>
-
               {/* Lagos Timezone Pill */}
               <div className="hidden lg:flex items-center space-x-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 font-mono">
                 <Clock className="w-3.5 h-3.5 text-slate-400" />
