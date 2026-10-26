@@ -370,7 +370,7 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
                   type="text"
                   value={volunteerId}
                   onChange={handleVolunteerIdChange}
-                  placeholder="e.g. LLO-VOL-001"
+                  placeholder="Enter Your volunteer ID"
                   autoComplete="off"
                   spellCheck="false"
                   disabled={isSubmitting}
