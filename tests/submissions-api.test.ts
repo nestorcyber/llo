@@ -1,0 +1,288 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import { dataStore } from '../src/lib/data-store';
+import { handleSubmission } from '../api/submissions';
+import { checkRateLimit } from '../api/utils/rate-limiter';
+
+describe('Secure Submission Backend & Business Rules', () => {
+  beforeEach(() => {
+    dataStore.resetToDefault();
+  });
+
+  it('records valid task submission and resolves volunteer name from ID', async () => {
+    const schedule = dataStore.getPublicSchedule();
+    const openSlot = schedule.slots.find(s => s.is_open && s.tasks.length > 0);
+    expect(openSlot).toBeDefined();
+
+    const targetTask = openSlot!.tasks.length > 2 ? openSlot!.tasks[2] : openSlot!.tasks[0];
+
+    let responseStatus = 0;
+    let responseBody: any = null;
+
+    const mockReq = {
+      method: 'POST',
+      body: {
+        volunteer_id: 'llo-vol-004', // Emeka Nwosu (Technical)
+        session_slot_id: openSlot!.id,
+        session_task_id: targetTask.id,
+      },
+      headers: {
+        'x-forwarded-for': '197.210.55.10',
+        'user-agent': 'Vitest Mobile Agent',
+      },
+    };
+
+    const mockRes = {
+      status(code: number) {
+        responseStatus = code;
+        return this;
+      },
+      json(data: any) {
+        responseBody = data;
+      },
+      setHeader() {},
+    };
+
+    await handleSubmission(mockReq, mockRes);
+
+    expect(responseStatus).toBe(201);
+    expect(responseBody.success).toBe(true);
+    expect(responseBody.submission).toBeDefined();
+    // Resolves volunteer name on the server
+    expect(responseBody.submission.volunteer_name).toBe('Emeka Nwosu');
+    expect(responseBody.submission.volunteer_id).toBe('LLO-VOL-004');
+    expect(responseBody.submission.task_title).toBe(targetTask.title);
+    expect(responseBody.submission.submitted_at_lagos).toContain('WAT');
+  });
+
+  it('rejects nonexistent or unregistered volunteer IDs', async () => {
+    const schedule = dataStore.getPublicSchedule();
+    const openSlot = schedule.slots.find(s => s.is_open && s.tasks.length > 0)!;
+
+    let responseStatus = 0;
+    let responseBody: any = null;
+
+    const mockReq = {
+      method: 'POST',
+      body: {
+        volunteer_id: 'LLO-VOL-999', // nonexistent
+        session_slot_id: openSlot.id,
+        session_task_id: openSlot.tasks[0].id,
+      },
+    };
+
+    const mockRes = {
+      status(code: number) {
+        responseStatus = code;
+        return this;
+      },
+      json(data: any) {
+        responseBody = data;
+      },
+      setHeader() {},
+    };
+
+    await handleSubmission(mockReq, mockRes);
+
+    expect(responseStatus).toBe(404);
+    expect(responseBody.success).toBe(false);
+    expect(responseBody.error_code).toBe('INVALID_VOLUNTEER_ID');
+    expect(responseBody.message).toContain('not found');
+  });
+
+  it('rejects inactive or deactivated volunteer accounts', async () => {
+    // In default seed data, LLO-VOL-007 (Blessing Okafor) is inactive (is_active = false)
+    const schedule = dataStore.getPublicSchedule();
+    const openSlot = schedule.slots.find(s => s.is_open && s.tasks.length > 0)!;
+
+    let responseStatus = 0;
+    let responseBody: any = null;
+
+    const mockReq = {
+      method: 'POST',
+      body: {
+        volunteer_id: 'LLO-VOL-007', // Inactive volunteer
+        session_slot_id: openSlot.id,
+        session_task_id: openSlot.tasks[0].id,
+      },
+    };
+
+    const mockRes = {
+      status(code: number) {
+        responseStatus = code;
+        return this;
+      },
+      json(data: any) {
+        responseBody = data;
+      },
+      setHeader() {},
+    };
+
+    await handleSubmission(mockReq, mockRes);
+
+    expect(responseStatus).toBe(403);
+    expect(responseBody.success).toBe(false);
+    expect(responseBody.error_code).toBe('INACTIVE_VOLUNTEER');
+    expect(responseBody.message).toContain('inactive');
+  });
+
+  it('rejects task and session slot mismatch', async () => {
+    const schedule = dataStore.getPublicSchedule();
+    const slotA = schedule.slots[0];
+    const slotB = schedule.slots[1];
+
+    expect(slotA.tasks.length).toBeGreaterThan(0);
+
+    let responseStatus = 0;
+    let responseBody: any = null;
+
+    const mockReq = {
+      method: 'POST',
+      body: {
+        volunteer_id: 'LLO-VOL-001',
+        session_slot_id: slotB.id, // slot B
+        session_task_id: slotA.tasks[0].id, // task belongs to slot A!
+      },
+    };
+
+    const mockRes = {
+      status(code: number) {
+        responseStatus = code;
+        return this;
+      },
+      json(data: any) {
+        responseBody = data;
+      },
+      setHeader() {},
+    };
+
+    await handleSubmission(mockReq, mockRes);
+
+    expect(responseStatus).toBe(400);
+    expect(responseBody.success).toBe(false);
+    expect(responseBody.error_code).toBe('TASK_SESSION_MISMATCH');
+  });
+
+  it('rejects submissions when session window is closed', async () => {
+    // Force close a slot override
+    const schedule = dataStore.getPublicSchedule();
+    const targetSlot = schedule.slots[0];
+    const staff = dataStore.getStaff()[0];
+
+    // Force closed
+    dataStore.setSlotOverride(targetSlot.id, false, staff);
+
+    let responseStatus = 0;
+    let responseBody: any = null;
+
+    const mockReq = {
+      method: 'POST',
+      body: {
+        volunteer_id: 'LLO-VOL-001',
+        session_slot_id: targetSlot.id,
+        session_task_id: targetSlot.tasks[0].id,
+      },
+    };
+
+    const mockRes = {
+      status(code: number) {
+        responseStatus = code;
+        return this;
+      },
+      json(data: any) {
+        responseBody = data;
+      },
+      setHeader() {},
+    };
+
+    await handleSubmission(mockReq, mockRes);
+
+    expect(responseStatus).toBe(400);
+    expect(responseBody.success).toBe(false);
+    expect(responseBody.error_code).toBe('SESSION_CLOSED');
+  });
+
+  it('enforces database unique constraint preventing duplicate submissions for the same task', async () => {
+    const schedule = dataStore.getPublicSchedule();
+    const openSlot = schedule.slots.find(s => s.is_open && s.tasks.length > 0)!;
+    const task = openSlot.tasks[0];
+
+    const mockReq = {
+      method: 'POST',
+      body: {
+        volunteer_id: 'LLO-VOL-003',
+        session_slot_id: openSlot.id,
+        session_task_id: task.id,
+      },
+      headers: { 'x-forwarded-for': '127.0.0.1' },
+    };
+
+    let firstCode = 0;
+    let firstRes: any = null;
+    await handleSubmission(mockReq, {
+      status(c: number) { firstCode = c; return this; },
+      json(d: any) { firstRes = d; },
+      setHeader() {},
+    });
+
+    expect(firstCode).toBe(201);
+    expect(firstRes.success).toBe(true);
+
+    // Second submission with exact same volunteer & task -> MUST BE REJECTED (409)
+    let secondCode = 0;
+    let secondRes: any = null;
+    await handleSubmission(mockReq, {
+      status(c: number) { secondCode = c; return this; },
+      json(d: any) { secondRes = d; },
+      setHeader() {},
+    });
+
+    expect(secondCode).toBe(409);
+    expect(secondRes.success).toBe(false);
+    expect(secondRes.error_code).toBe('DUPLICATE_SUBMISSION');
+    expect(secondRes.message).toContain('Duplicate submission rejected');
+  });
+
+  it('allows resubmission if an existing submission was voided by an authorized administrator', async () => {
+    const schedule = dataStore.getPublicSchedule();
+    const openSlot = schedule.slots.find(s => s.is_open && s.tasks.length > 0)!;
+    const task = openSlot.tasks[0];
+    const staff = dataStore.getStaff()[0];
+
+    // 1. Submit
+    const res1 = dataStore.submitTask({
+      volunteer_id: 'LLO-VOL-004',
+      session_slot_id: openSlot.id,
+      session_task_id: task.id,
+    });
+    expect(res1.success).toBe(true);
+
+    // 2. Void the submission
+    const voidRes = dataStore.voidSubmission(res1.submission!.id, 'Submitted by mistake', staff);
+    expect(voidRes.success).toBe(true);
+
+    // 3. Resubmit same task -> Now permitted because old record is voided!
+    const res2 = dataStore.submitTask({
+      volunteer_id: 'LLO-VOL-004',
+      session_slot_id: openSlot.id,
+      session_task_id: task.id,
+    });
+    expect(res2.success).toBe(true);
+    expect(res2.submission).toBeDefined();
+  });
+
+  it('applies sliding window rate limiting on rapid burst attempts', () => {
+    const testKey = 'test-rate-limit-key';
+
+    // First 5 requests within window are allowed
+    for (let i = 0; i < 5; i++) {
+      const check = checkRateLimit(testKey, 5, 5000);
+      expect(check.allowed).toBe(true);
+    }
+
+    // 6th request within window must be rejected
+    const blockedCheck = checkRateLimit(testKey, 5, 5000);
+    expect(blockedCheck.allowed).toBe(false);
+    expect(blockedCheck.remaining).toBe(0);
+    expect(blockedCheck.retryAfterSeconds).toBeGreaterThan(0);
+  });
+});
