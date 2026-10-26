@@ -11,6 +11,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { StaffProfile, StaffRole } from '../../types';
+import niforixLogo from '../../assets/niforix-logo.png';
 
 export type AdminTab =
   | 'dashboard'
@@ -150,6 +151,23 @@ export const AdminLayout: React.FC<Props> = ({
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {children}
       </main>
+
+      {/* Admin Footer */}
+      <footer className="bg-white border-t border-slate-200 py-4 mt-auto text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="text-slate-600">
+            LinkedIn Local Owerri &bull; Operations & Volunteer Management
+          </p>
+          <div className="flex items-center space-x-2 text-slate-600 font-medium">
+            <span>Powered by</span>
+            <img
+              src={niforixLogo}
+              alt="Niforix"
+              className="h-5 object-contain inline-block"
+            />
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

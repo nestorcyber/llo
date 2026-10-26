@@ -3,6 +3,7 @@ import { Shield, Lock, Mail, ArrowLeft, AlertCircle, KeyRound, Check } from 'luc
 import { StaffProfile, StaffRole } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { dataStore } from '../lib/data-store';
+import niforixLogo from '../assets/niforix-logo.png';
 
 interface Props {
   onLoginSuccess: (user: StaffProfile) => void;
@@ -269,6 +270,16 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 flex items-center justify-center space-x-2 text-xs text-slate-400">
+          <span>Powered by</span>
+          <img
+            src={niforixLogo}
+            alt="Niforix"
+            className="h-5 object-contain inline-block bg-white/95 px-2 py-0.5 rounded shadow-sm"
+          />
         </div>
       </div>
     </div>
