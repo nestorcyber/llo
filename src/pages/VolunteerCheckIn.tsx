@@ -146,8 +146,12 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
             />
           </div>
 
-          <div className="text-right">
-            <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+          <div className="text-right flex items-center space-x-2">
+            <span className="inline-flex items-center space-x-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Live System</span>
+            </span>
+            <span className="text-xs font-semibold text-slate-700 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
               {scheduleData ? `Day ${scheduleData.current_day.day_number} of ${scheduleData.programme.duration_days}` : '30-Day'}
             </span>
           </div>

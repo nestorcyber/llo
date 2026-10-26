@@ -51,6 +51,10 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
 
   useEffect(() => {
     loadVolunteers();
+    const unsubscribe = dataStore.subscribe(() => {
+      loadVolunteers();
+    });
+    return () => unsubscribe();
   }, [search, statusFilter]);
 
   const loadVolunteers = () => {

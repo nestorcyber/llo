@@ -43,3 +43,37 @@ export async function submitVolunteerTask(payload: SubmissionPayload): Promise<S
     return dataStore.submitTask(payload);
   }
 }
+
+export async function fetchAdminData(): Promise<any> {
+  try {
+    const res = await fetch('/api/admin-data', {
+      headers: { Accept: 'application/json' },
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Could not fetch admin data from /api/admin-data:', err);
+  }
+  return null;
+}
+
+export async function executeAdminAction(action: string, payload: any): Promise<any> {
+  try {
+    const res = await fetch('/api/admin-action', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ action, payload }),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn(`Failed to execute admin action ${action}:`, err);
+  }
+  return null;
+}
+

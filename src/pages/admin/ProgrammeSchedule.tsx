@@ -36,12 +36,13 @@ export const ProgrammeSchedule: React.FC<Props> = ({ currentStaff }) => {
 
   useEffect(() => {
     loadData();
-  }, []);
-
-  useEffect(() => {
-    if (selectedDayId) {
-      loadDaySlots(selectedDayId);
-    }
+    const unsubscribe = dataStore.subscribe(() => {
+      loadData();
+      if (selectedDayId) {
+        loadDaySlots(selectedDayId);
+      }
+    });
+    return () => unsubscribe();
   }, [selectedDayId]);
 
   const loadData = () => {

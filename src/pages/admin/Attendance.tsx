@@ -32,6 +32,10 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
 
   useEffect(() => {
     loadAttendance();
+    const unsubscribe = dataStore.subscribe(() => {
+      loadAttendance();
+    });
+    return () => unsubscribe();
   }, [dayFilter, sessionFilter, statusFilter, search]);
 
   const loadAttendance = () => {

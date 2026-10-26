@@ -17,6 +17,10 @@ export const TeamManagement: React.FC<Props> = ({ currentStaff }) => {
 
   useEffect(() => {
     loadStaff();
+    const unsubscribe = dataStore.subscribe(() => {
+      loadStaff();
+    });
+    return () => unsubscribe();
   }, []);
 
   const loadStaff = () => {

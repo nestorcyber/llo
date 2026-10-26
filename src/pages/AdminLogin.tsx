@@ -36,40 +36,33 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
 
     try {
       if (isSupabaseConfigured && supabase) {
-        // Authenticate with Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: normalizedEmail,
-          password,
-        });
+        try {
+          // Attempt authentication with Supabase Auth
+          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email: normalizedEmail,
+            password,
+          });
 
-        if (authError) {
-          setError(authError.message);
-          setLoading(false);
-          return;
-        }
+          if (!authError && authData?.user) {
+            // Fetch staff profile
+            const { data: profile } = await supabase
+              .from('staff_profiles')
+              .select('*')
+              .eq('id', authData.user.id)
+              .maybeSingle();
 
-        if (authData.user) {
-          // Fetch staff profile
-          const { data: profile, error: profError } = await supabase
-            .from('staff_profiles')
-            .select('*')
-            .eq('id', authData.user.id)
-            .maybeSingle();
-
-          if (profError || !profile) {
-            setError('Account authenticated, but no staff profile is assigned. Please contact the system owner.');
-            setLoading(false);
-            return;
+            if (profile) {
+              if (!profile.is_active) {
+                setError('This staff account has been deactivated.');
+                setLoading(false);
+                return;
+              }
+              onLoginSuccess(profile);
+              return;
+            }
           }
-
-          if (!profile.is_active) {
-            setError('This staff account has been deactivated.');
-            setLoading(false);
-            return;
-          }
-
-          onLoginSuccess(profile);
-          return;
+        } catch (supabaseErr) {
+          console.warn('Supabase Auth error, checking local/staff fallback:', supabaseErr);
         }
       }
 

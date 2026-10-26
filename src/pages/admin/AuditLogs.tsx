@@ -15,6 +15,10 @@ export const AuditLogs: React.FC<Props> = () => {
 
   useEffect(() => {
     loadLogs();
+    const unsubscribe = dataStore.subscribe(() => {
+      loadLogs();
+    });
+    return () => unsubscribe();
   }, [search, actionFilter]);
 
   const loadLogs = () => {

@@ -20,6 +20,9 @@ import {
   getNextSessionInfo,
 } from './lagos-time';
 import { normalizeVolunteerId } from './validation';
+import { supabase, isSupabaseConfigured } from './supabase';
+
+
 
 // Helper to generate IDs
 const uid = () => 'id-' + Math.random().toString(36).substring(2, 9) + '-' + Date.now().toString(36);
@@ -262,10 +265,145 @@ function initializeDefaultData(): StoreState {
 
 class Store {
   private state: StoreState;
+  private listeners: Set<() => void> = new Set();
+  private isLive = false;
+  private lastSyncTime: Date | null = null;
+  private isSyncing = false;
 
   constructor() {
     this.state = this.load();
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        this.syncWithLiveDatabase();
+        this.setupRealtimeSync();
+      }, 50);
+    }
   }
+
+  public subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  public notifyListeners(): void {
+    this.listeners.forEach((listener) => {
+      try {
+        listener();
+      } catch (err) {
+        console.error('Error in store listener callback:', err);
+      }
+    });
+  }
+
+  public isLiveConnected(): boolean {
+    return this.isLive;
+  }
+
+  public getLastSync(): Date | null {
+    return this.lastSyncTime;
+  }
+
+  public async syncWithLiveDatabase(): Promise<boolean> {
+    if (this.isSyncing) return false;
+    this.isSyncing = true;
+    try {
+      if (typeof window !== 'undefined') {
+        const res = await fetch('/api/admin-data', {
+          headers: { Accept: 'application/json' },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.live && json.data) {
+            const live = json.data;
+            if (live.programmes && live.programmes.length > 0) {
+              this.state.programmes = live.programmes;
+            }
+            if (live.programme_days && live.programme_days.length > 0) {
+              this.state.programme_days = live.programme_days;
+            }
+            if (live.session_slots && live.session_slots.length > 0) {
+              this.state.session_slots = live.session_slots;
+            }
+            if (Array.isArray(live.volunteers)) {
+              this.state.volunteers = live.volunteers;
+            }
+            if (Array.isArray(live.task_submissions)) {
+              this.state.task_submissions = live.task_submissions;
+            }
+            if (Array.isArray(live.staff_profiles) && live.staff_profiles.length > 0) {
+              this.state.staff_profiles = live.staff_profiles;
+            }
+            if (Array.isArray(live.audit_logs)) {
+              this.state.audit_logs = live.audit_logs;
+            }
+
+            this.isLive = true;
+            this.lastSyncTime = new Date();
+            this.save();
+            this.notifyListeners();
+            return true;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Live database sync attempt:', err);
+    } finally {
+      this.isSyncing = false;
+    }
+    return false;
+  }
+
+  private setupRealtimeSync(): void {
+    if (typeof window === 'undefined') return;
+
+    // Background poll every 10 seconds for instant live updates
+    setInterval(() => {
+      this.syncWithLiveDatabase();
+    }, 10000);
+
+    // Sync when user focuses or returns to window
+    window.addEventListener('focus', () => {
+      this.syncWithLiveDatabase();
+    });
+
+    // Supabase Realtime channel if available in client
+    try {
+      if (isSupabaseConfigured && supabase) {
+        supabase
+          .channel('llo-live-channel')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'task_submissions' }, () => {
+            this.syncWithLiveDatabase();
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'volunteers' }, () => {
+            this.syncWithLiveDatabase();
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'session_slots' }, () => {
+            this.syncWithLiveDatabase();
+          })
+          .subscribe();
+      }
+    } catch (err) {
+      console.warn('Realtime channel subscription error:', err);
+    }
+  }
+
+  private async dispatchAction(action: string, payload: any): Promise<void> {
+    if (typeof window === 'undefined') return;
+    try {
+      await fetch('/api/admin-action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, payload }),
+      });
+      // Trigger a sync shortly after dispatching to ensure full consistency
+      setTimeout(() => this.syncWithLiveDatabase(), 300);
+    } catch (err) {
+      console.warn(`Failed to dispatch ${action} to server:`, err);
+    }
+  }
+
 
   private load(): StoreState {
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -720,6 +858,12 @@ class Store {
     });
 
     this.save();
+    this.dispatchAction('void_submission', {
+      submission_id: submissionId,
+      void_reason: reason,
+      voided_by: staffUser.id,
+    });
+    this.notifyListeners();
     return { success: true, message: 'Check-in record has been voided and audit logged.' };
   }
 
@@ -773,6 +917,8 @@ class Store {
       name: newVol.full_name,
     });
     this.save();
+    this.dispatchAction('add_volunteer', newVol);
+    this.notifyListeners();
 
     return { success: true, message: 'Volunteer added successfully.', volunteer: newVol };
   }
@@ -794,6 +940,8 @@ class Store {
       updates,
     });
     this.save();
+    this.dispatchAction('update_volunteer', { id, updates });
+    this.notifyListeners();
 
     return { success: true, message: 'Volunteer updated successfully.' };
   }
@@ -805,6 +953,7 @@ class Store {
     const existingIds = new Set(this.state.volunteers.map(v => normalizeVolunteerId(v.volunteer_id)));
     let imported = 0;
     let duplicates = 0;
+    const newItems: Volunteer[] = [];
 
     for (const row of rows) {
       const nid = normalizeVolunteerId(row.volunteer_id);
@@ -821,6 +970,7 @@ class Store {
         updated_at: new Date().toISOString(),
       };
       this.state.volunteers.push(newVol);
+      newItems.push(newVol);
       existingIds.add(nid);
       imported++;
     }
@@ -831,6 +981,10 @@ class Store {
     });
 
     this.save();
+    if (newItems.length > 0) {
+      this.dispatchAction('import_volunteers', { volunteers: newItems });
+    }
+    this.notifyListeners();
     return {
       success: true,
       importedCount: imported,
@@ -908,6 +1062,8 @@ class Store {
     });
 
     this.save();
+    this.dispatchAction('set_active_day', { programme_id: activeProg.id, day_number: dayNumber });
+    this.notifyListeners();
     return {
       success: true,
       message: `Day ${dayNumber} (${targetDay.calendar_date}) is now set as the active day for volunteer check-ins!`,
@@ -944,6 +1100,8 @@ class Store {
       override_state: override === null ? 'AUTO (WINDOW)' : override ? 'FORCE_OPEN' : 'FORCE_CLOSED',
     });
     this.save();
+    this.dispatchAction('set_slot_override', { slot_id: slotId, override });
+    this.notifyListeners();
     return { success: true, message: `Session slot override set to ${override}` };
   }
 
@@ -969,6 +1127,7 @@ class Store {
       email: newStaff.email,
     });
     this.save();
+    this.notifyListeners();
     return { success: true, staff: newStaff };
   }
 
@@ -992,6 +1151,8 @@ class Store {
       new_role: newRole,
     });
     this.save();
+    this.dispatchAction('update_staff_role', { staff_id: id, role: newRole });
+    this.notifyListeners();
     return { success: true, message: `Staff role updated to ${newRole}.` };
   }
 
@@ -1023,6 +1184,13 @@ class Store {
     };
     this.state.audit_logs.unshift(log);
     this.save();
+    this.dispatchAction('add_audit_log', {
+      staff_id: staff?.id || null,
+      action_type: action,
+      entity_type: target_type,
+      entity_id: target_id,
+      details,
+    });
   }
 }
 

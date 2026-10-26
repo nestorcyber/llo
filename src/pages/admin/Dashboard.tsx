@@ -22,6 +22,10 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    const unsubscribe = dataStore.subscribe(() => {
+      loadData();
+    });
+    return () => unsubscribe();
   }, [selectedDayNumber]);
 
   const loadData = () => {
