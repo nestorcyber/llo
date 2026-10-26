@@ -10,7 +10,6 @@ import {
   Info,
   UserCheck,
   ArrowRight,
-  Lock,
   Hourglass,
 } from 'lucide-react';
 import { PublicScheduleData, SubmissionResult, SessionSlot } from '../types';
@@ -33,7 +32,6 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionResult, setSubmissionResult] = useState<SubmissionResult | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
-  const [sessionFeedback, setSessionFeedback] = useState<{ message: string; type: 'closed' | 'upcoming' | 'info' } | null>(null);
 
   // Live Lagos clock
   const [currentLagosTime, setCurrentLagosTime] = useState<string>('');
@@ -69,30 +67,9 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
   const handleSlotClick = (slot: SessionSlot) => {
     setFormError(null);
 
-    const windowRange = formatSessionWindowRange(
-      slot.scheduled_time,
-      slot.window_open_offset_minutes,
-      slot.window_close_offset_minutes
-    );
-
+    // Only open sessions can be selected
     if (slot.is_open) {
       setSelectedSlotId(slot.id);
-      setSessionFeedback(null);
-    } else if (slot.window_status === 'closed') {
-      setSessionFeedback({
-        type: 'closed',
-        message: `${slot.name} is Closed. Check-in for this session has already ended (Window: ${windowRange}).`,
-      });
-    } else if (slot.window_status === 'upcoming') {
-      setSessionFeedback({
-        type: 'upcoming',
-        message: `${slot.name} is Upcoming. Check-in will open during its scheduled window (${windowRange}).`,
-      });
-    } else {
-      setSessionFeedback({
-        type: 'closed',
-        message: `${slot.name} is currently Closed.`,
-      });
     }
   };
 
@@ -136,9 +113,6 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
       });
 
       setSubmissionResult(result);
-      if (result.success) {
-        setSessionFeedback(null);
-      }
     } catch (err: any) {
       setSubmissionResult({
         success: false,
@@ -154,7 +128,6 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
     setVolunteerId('');
     setSubmissionResult(null);
     setFormError(null);
-    setSessionFeedback(null);
   };
 
   const handleVolunteerIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -295,29 +268,6 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
               <div className="mb-5 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-2.5 text-red-800 text-xs animate-fadeIn">
                 <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                 <span className="font-medium">{formError}</span>
-              </div>
-            )}
-
-            {/* Click Feedback on Closed or Upcoming Session */}
-            {sessionFeedback && (
-              <div
-                className={`mb-5 p-3.5 rounded-xl border flex items-start space-x-2.5 text-xs animate-fadeIn ${
-                  sessionFeedback.type === 'closed'
-                    ? 'bg-slate-100 border-slate-300 text-slate-800'
-                    : 'bg-amber-50 border-amber-300 text-amber-900'
-                }`}
-              >
-                {sessionFeedback.type === 'closed' ? (
-                  <Lock className="w-4 h-4 text-slate-600 flex-shrink-0 mt-0.5" />
-                ) : (
-                  <Hourglass className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-                )}
-                <div>
-                  <span className="font-bold mr-1">
-                    {sessionFeedback.type === 'closed' ? 'Session Closed:' : 'Session Upcoming:'}
-                  </span>
-                  <span>{sessionFeedback.message}</span>
-                </div>
               </div>
             )}
 
@@ -464,20 +414,6 @@ export const VolunteerCheckIn: React.FC<Props> = ({ onNavigateToAdmin }) => {
                   );
                 })}
               </div>
-
-              {/* Informative Next Session Banner if currently outside active windows */}
-              {!scheduleData.active_slot && scheduleData.next_session && (
-                <div className="mt-3.5 p-3 rounded-xl bg-blue-50/80 border border-blue-200 text-xs text-slate-700 flex items-start space-x-2">
-                  <Info className="w-4 h-4 text-linkedin flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-slate-900">Next Available Session: </span>
-                    <span>{scheduleData.next_session.name} ({scheduleData.next_session.window_range})</span>
-                    <span className="block text-[11px] text-slate-500 mt-0.5">
-                      Opens: <strong className="text-linkedin">{scheduleData.next_session.opens_at_label}</strong>
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Submit Button */}
