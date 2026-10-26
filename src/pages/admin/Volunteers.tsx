@@ -182,9 +182,9 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
   return (
     <div className="space-y-6">
       {/* Title & Action Buttons */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Volunteer Directory & IDs</h1>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900">Volunteer Directory & IDs</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Manage assigned volunteer credentials, track rosters, and inspect 30-day activity matrices
           </p>
@@ -195,7 +195,7 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
             <>
               <button
                 onClick={handleOpenAddModal}
-                className="flex items-center space-x-1.5 px-3.5 py-2 bg-linkedin hover:bg-linkedin-dark text-white text-xs font-semibold rounded-lg shadow-sm transition"
+                className="flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 <span>Add Volunteer</span>
@@ -207,7 +207,7 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
                   setImportStatus(null);
                   setShowImportModal(true);
                 }}
-                className="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
+                className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 hover:border-slate-300 transition shadow-sm"
               >
                 <Upload className="w-3.5 h-3.5" />
                 <span>Import CSV</span>
@@ -217,16 +217,16 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
 
           <button
             onClick={handleDownloadTemplate}
-            className="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
+            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 hover:border-slate-300 transition shadow-sm"
             title="Download blank CSV template with sample volunteer IDs and format"
           >
-            <FileText className="w-3.5 h-3.5 text-linkedin" />
+            <FileText className="w-3.5 h-3.5 text-blue-600" />
             <span>Download Template</span>
           </button>
 
           <button
             onClick={handleExportCsv}
-            className="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
+            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 hover:border-slate-300 transition shadow-sm"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export Directory</span>
@@ -235,7 +235,7 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Search */}
         <div>
           <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">

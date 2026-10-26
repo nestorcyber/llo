@@ -41,45 +41,50 @@ export const AdminLayout: React.FC<Props> = ({
   const isOwner = currentStaff.role === 'owner';
 
   const roleBadgeColor: Record<StaffRole, string> = {
-    owner: 'bg-amber-100 text-amber-800 border-amber-300',
-    manager: 'bg-blue-100 text-blue-800 border-blue-300',
-    viewer: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+    owner: 'bg-amber-50 text-amber-800 border-amber-200',
+    manager: 'bg-blue-50 text-blue-800 border-blue-200',
+    viewer: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   };
 
-  const navItems: Array<{ id: AdminTab; label: string; icon: React.FC<{ className?: string }>; ownerOnly?: boolean }> = [
-    { id: 'dashboard', label: 'Dashboard & Analytics', icon: LayoutDashboard },
-    { id: 'attendance', label: 'Attendance & Reports', icon: CheckSquare },
-    { id: 'volunteers', label: 'Volunteer Directory', icon: Users },
-    { id: 'schedule', label: 'Programme & Tasks', icon: CalendarDays },
-    { id: 'team', label: 'Team & Roles', icon: Shield, ownerOnly: true },
+  const navItems: Array<{ id: AdminTab; label: string; icon: React.FC<any>; ownerOnly?: boolean }> = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'attendance', label: 'Attendance', icon: CheckSquare },
+    { id: 'volunteers', label: 'Volunteers', icon: Users },
+    { id: 'schedule', label: 'Programme & Sessions', icon: CalendarDays },
+    { id: 'team', label: 'Team Roles', icon: Shield, ownerOnly: true },
     { id: 'audit', label: 'Audit Logs', icon: FileText },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Top Navigation Bar */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+      <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Brand Logo & Title */}
             <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-lg bg-linkedin flex items-center justify-center font-bold text-white text-base shadow">
+              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-heading font-extrabold text-white text-sm shadow-sm">
                 LLO
               </div>
               <div>
-                <span className="font-bold text-slate-900 text-base leading-none block">
-                  LinkedIn Local Owerri
-                </span>
-                <span className="text-[11px] font-medium text-slate-500">
+                <div className="flex items-center space-x-2">
+                  <span className="font-heading font-bold text-slate-900 text-sm sm:text-base leading-none">
+                    LinkedIn Local Owerri
+                  </span>
+                  <span className="hidden sm:inline-block text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                    Admin Portal
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500 block mt-0.5">
                   Operations & Volunteer Management
                 </span>
               </div>
             </div>
 
             {/* Timezone & Staff User Info */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               {/* Lagos Timezone Pill */}
-              <div className="hidden md:flex items-center space-x-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 font-mono">
+              <div className="hidden lg:flex items-center space-x-1.5 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 font-mono">
                 <Clock className="w-3.5 h-3.5 text-slate-400" />
                 <span>WAT (UTC+1)</span>
               </div>
@@ -87,42 +92,42 @@ export const AdminLayout: React.FC<Props> = ({
               {/* Public Check-in Shortcut */}
               <button
                 onClick={onGoToPublicPage}
-                className="hidden sm:flex items-center space-x-1 px-3 py-1.5 text-xs text-slate-600 hover:text-linkedin hover:bg-slate-50 border border-slate-200 rounded-lg transition"
+                className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-blue-600 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition shadow-sm"
               >
                 <span>Volunteer Check-In</span>
-                <ExternalLink className="w-3 h-3" />
+                <ExternalLink className="w-3 h-3 text-slate-400" />
               </button>
 
               {/* User Identity & Role Badge */}
-              <div className="flex items-center space-x-2 pl-2 border-l border-slate-200">
-                <div className="text-right">
+              <div className="flex items-center space-x-2 pl-2 sm:pl-3 border-l border-slate-200">
+                <div className="hidden sm:block text-right">
                   <div className="text-xs font-bold text-slate-900 leading-none">
                     {currentStaff.full_name}
                   </div>
-                  <div className="text-[10px] text-slate-400">{currentStaff.email}</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">{currentStaff.email}</div>
                 </div>
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase border ${
                     roleBadgeColor[currentStaff.role]
                   }`}
                 >
                   {currentStaff.role}
                 </span>
-              </div>
 
-              {/* Logout */}
-              <button
-                onClick={onLogout}
-                title="Sign out"
-                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+                {/* Logout Button */}
+                <button
+                  onClick={onLogout}
+                  title="Sign out"
+                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Sub Navigation Tabs */}
-          <nav className="flex space-x-1 overflow-x-auto py-2 -mb-px border-t border-slate-100">
+          {/* Navigation Tabs */}
+          <nav className="flex space-x-1 overflow-x-auto py-2 -mb-px border-t border-slate-100 scrollbar-none">
             {navItems.map(item => {
               if (item.ownerOnly && !isOwner) return null;
               const Icon = item.icon;
@@ -132,13 +137,13 @@ export const AdminLayout: React.FC<Props> = ({
                 <button
                   key={item.id}
                   onClick={() => onTabChange(item.id)}
-                  className={`flex items-center space-x-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap ${
+                  className={`flex items-center space-x-2 px-3.5 py-2 text-xs font-semibold rounded-xl transition whitespace-nowrap ${
                     isActive
-                      ? 'bg-linkedin text-white shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                   <span>{item.label}</span>
                 </button>
               );
@@ -148,14 +153,14 @@ export const AdminLayout: React.FC<Props> = ({
       </header>
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {children}
       </main>
 
       {/* Admin Footer */}
-      <footer className="bg-white border-t border-slate-200 py-4 mt-auto text-xs text-slate-500">
+      <footer className="bg-white border-t border-slate-200/80 py-4 mt-auto text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-slate-600">
+          <p className="text-slate-500">
             LinkedIn Local Owerri &bull; Operations & Volunteer Management
           </p>
           <div className="flex items-center space-x-2 text-slate-600 font-medium">

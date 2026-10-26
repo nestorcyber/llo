@@ -56,18 +56,18 @@ export const AuditLogs: React.FC<Props> = () => {
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
         <div className="flex items-center space-x-2">
-          <FileText className="w-5 h-5 text-linkedin" />
-          <h1 className="text-xl font-bold text-slate-900">Administrative Audit Logs</h1>
+          <FileText className="w-5 h-5 text-blue-600" />
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900">Administrative Audit Logs</h1>
         </div>
         <p className="text-xs text-slate-500 mt-0.5">
-          Immutable audit trail recording administrative actions, task updates, volunteer deactivations, voided records, role modifications, and CSV exports.
+          Immutable audit trail recording administrative actions, session updates, volunteer deactivations, voided records, role modifications, and CSV exports.
         </p>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
             Search Audit Entries

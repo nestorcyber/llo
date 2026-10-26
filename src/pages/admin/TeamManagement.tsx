@@ -67,11 +67,11 @@ export const TeamManagement: React.FC<Props> = ({ currentStaff }) => {
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <Shield className="w-5 h-5 text-linkedin" />
-            <h1 className="text-xl font-bold text-slate-900">Team & Role Administration</h1>
+            <Shield className="w-5 h-5 text-blue-600" />
+            <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900">Team & Role Administration</h1>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
             Manage administrative access levels. Role changes and invitations are restricted to Owners.
@@ -83,7 +83,7 @@ export const TeamManagement: React.FC<Props> = ({ currentStaff }) => {
             setError(null);
             setShowAddModal(true);
           }}
-          className="flex items-center space-x-1.5 px-3.5 py-2 bg-linkedin hover:bg-linkedin-dark text-white text-xs font-semibold rounded-lg shadow-sm transition"
+          className="flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition"
         >
           <UserPlus className="w-3.5 h-3.5" />
           <span>Invite / Provision Team Member</span>

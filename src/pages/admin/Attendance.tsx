@@ -83,11 +83,11 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
   return (
     <div className="space-y-6">
       {/* Title & Toolbar */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Attendance & Submissions</h1>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900">Attendance & Submissions</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Search, filter, inspect and export reported volunteer tasks (WAT timezone)
+            Search, filter, inspect and export reported volunteer check-ins (WAT timezone)
           </p>
         </div>
 
@@ -95,7 +95,7 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => handleExportCsv(true)}
-            className="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
+            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 hover:border-slate-300 transition shadow-sm"
             title="Export records matching current search and filters"
           >
             <Download className="w-3.5 h-3.5" />
@@ -104,7 +104,7 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
 
           <button
             onClick={() => handleExportCsv(false)}
-            className="flex items-center space-x-1.5 px-3 py-2 bg-linkedin hover:bg-linkedin-dark text-white text-xs font-semibold rounded-lg shadow-sm transition"
+            className="flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition"
             title="Export all database records to CSV"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -114,33 +114,33 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
       </div>
 
       {/* Search and Filters Card */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Search Input */}
         <div>
-          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+          <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
             Search Volunteer
           </label>
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Name or ID (e.g. LLO-VOL-001)..."
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-linkedin"
+              className="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
             />
           </div>
         </div>
 
         {/* Day Filter */}
         <div>
-          <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+          <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
             Programme Day
           </label>
           <select
             value={dayFilter}
             onChange={e => setDayFilter(e.target.value)}
-            className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-linkedin"
+            className="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition"
           >
             <option value="all">All Days (1 - 30)</option>
             {Array.from({ length: 30 }, (_, i) => i + 1).map(d => (

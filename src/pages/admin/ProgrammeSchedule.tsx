@@ -92,13 +92,13 @@ export const ProgrammeSchedule: React.FC<Props> = ({ currentStaff }) => {
   return (
     <div className="space-y-6">
       {/* Top Banner: Programme Config */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <h1 className="text-xl font-bold text-slate-900">
+            <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900">
               {programme?.title || '30-Day Volunteer Programme'}
             </h1>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-emerald-100 text-emerald-800">
+            <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
               {programme?.status || 'active'}
             </span>
           </div>
@@ -114,7 +114,7 @@ export const ProgrammeSchedule: React.FC<Props> = ({ currentStaff }) => {
         {isOwner && programme?.status === 'active' && (
           <button
             onClick={() => setShowArchiveModal(true)}
-            className="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
+            className="flex items-center space-x-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 hover:border-slate-300 transition shadow-sm"
             title="Complete and archive programme without losing records"
           >
             <Archive className="w-3.5 h-3.5" />

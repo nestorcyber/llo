@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Lock, Mail, ArrowLeft, AlertCircle, KeyRound, Check } from 'lucide-react';
+import { Shield, Lock, Mail, ArrowLeft, AlertCircle, ArrowRight } from 'lucide-react';
 import { StaffProfile, StaffRole } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { dataStore } from '../lib/data-store';
@@ -77,7 +77,7 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
       const matched = staffList.find(s => s.email.toLowerCase() === normalizedEmail);
 
       if (!matched) {
-        setError(`No staff member found with email "${email}". Available accounts: admin@llo.com, manager@llo.com, viewer@llo.com.`);
+        setError(`No staff account found for "${email}". Expected admin@llo.com or manager@llo.com.`);
         setLoading(false);
         return;
       }
@@ -94,7 +94,7 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
         (matched.role === 'owner' ? 'adminllo' : `${matched.role}llo`);
 
       if (password !== expectedPassword) {
-        setError(`Incorrect password for ${email}. (Password format: adminllo for admin, managerllo for manager)`);
+        setError(`Incorrect password for ${email}. (Password: "adminllo" for admin, "managerllo" for manager)`);
         setLoading(false);
         return;
       }
@@ -107,85 +107,67 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
     }
   };
 
-  const handleFillCredentials = (staffEmail: string, staffRole: StaffRole) => {
+  const handleQuickFill = (staffEmail: string, role: StaffRole) => {
     setError(null);
     setEmail(staffEmail);
-    const pwd = STAFF_PASSWORDS[staffEmail] || (staffRole === 'owner' ? 'adminllo' : `${staffRole}llo`);
+    const pwd = STAFF_PASSWORDS[staffEmail] || (role === 'owner' ? 'adminllo' : `${role}llo`);
     setPassword(pwd);
   };
 
-  const handleQuickDemoLogin = (role: StaffRole) => {
-    const staffList = dataStore.getStaff();
-    const matched = staffList.find(s => s.role === role);
-    if (matched) {
-      setEmail(matched.email);
-      const pwd = STAFF_PASSWORDS[matched.email] || (role === 'owner' ? 'adminllo' : `${role}llo`);
-      setPassword(pwd);
-      onLoginSuccess(matched);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center items-center px-4 py-8 font-sans">
-      <div className="w-full max-w-md">
-        <button
-          onClick={onBackToVolunteerPage}
-          className="text-xs text-slate-400 hover:text-white flex items-center space-x-1.5 mb-6 transition"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Volunteer Check-in</span>
-        </button>
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-between font-sans">
+      {/* Top Navbar */}
+      <header className="bg-white border-b border-slate-200/80">
+        <div className="max-w-xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-heading font-extrabold text-white text-sm tracking-wider shadow-sm">
+              LLO
+            </div>
+            <div>
+              <h1 className="font-heading text-sm sm:text-base font-bold text-slate-900 leading-tight">
+                LinkedIn Local Owerri
+              </h1>
+              <p className="text-[11px] text-slate-500">Staff Management Portal</p>
+            </div>
+          </div>
 
-        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 sm:p-8 shadow-2xl">
+          <button
+            onClick={onBackToVolunteerPage}
+            className="text-xs font-semibold text-slate-600 hover:text-blue-600 flex items-center space-x-1.5 py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white transition shadow-sm"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Volunteer Check-In</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Main Login Card */}
+      <main className="max-w-md w-full mx-auto px-4 py-8 flex-1 flex flex-col justify-center">
+        <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-9 shadow-sm">
+          {/* Header */}
           <div className="text-center mb-6">
-            <div className="w-12 h-12 rounded-xl bg-linkedin flex items-center justify-center mx-auto mb-3 shadow-lg">
-              <Shield className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3 border border-blue-100 shadow-sm">
+              <Shield className="w-6 h-6" />
             </div>
-            <h1 className="font-heading text-xl font-bold text-white">Administrator Portal</h1>
-            <p className="text-xs text-slate-400 mt-1">LinkedIn Local Owerri Operations Team</p>
+            <h2 className="font-heading text-2xl font-extrabold text-slate-900 tracking-tight">
+              Staff Sign In
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              Sign in with your team credentials to access the management portal.
+            </p>
           </div>
 
-          {/* Quick Credentials Info Box */}
-          <div className="mb-6 p-3.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-xs">
-            <div className="flex items-center space-x-1.5 text-slate-300 font-bold mb-2">
-              <KeyRound className="w-3.5 h-3.5 text-linkedin-light" />
-              <span>Available Staff Accounts (Click to Fill):</span>
-            </div>
-            <div className="space-y-1.5 font-mono text-[11px]">
-              <div
-                onClick={() => handleFillCredentials('admin@llo.com', 'owner')}
-                className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800 cursor-pointer transition text-slate-300 hover:text-white"
-              >
-                <span>Admin: <strong className="text-amber-400">admin@llo.com</strong></span>
-                <span className="text-slate-400">pwd: <code className="text-white">adminllo</code></span>
-              </div>
-              <div
-                onClick={() => handleFillCredentials('manager@llo.com', 'manager')}
-                className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800 cursor-pointer transition text-slate-300 hover:text-white"
-              >
-                <span>Manager: <strong className="text-blue-400">manager@llo.com</strong></span>
-                <span className="text-slate-400">pwd: <code className="text-white">managerllo</code></span>
-              </div>
-              <div
-                onClick={() => handleFillCredentials('viewer@llo.com', 'viewer')}
-                className="flex items-center justify-between p-1.5 rounded hover:bg-slate-800 cursor-pointer transition text-slate-300 hover:text-white"
-              >
-                <span>Viewer: <strong className="text-emerald-400">viewer@llo.com</strong></span>
-                <span className="text-slate-400">pwd: <code className="text-white">viewerllo</code></span>
-              </div>
-            </div>
-          </div>
-
+          {/* Error Message */}
           {error && (
-            <div className="mb-5 p-3.5 bg-red-900/40 border border-red-700/50 rounded-xl flex items-start space-x-2.5 text-red-200 text-xs animate-fadeIn">
-              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="mb-5 p-3.5 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-2.5 text-red-800 text-xs animate-fadeIn">
+              <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-800 uppercase tracking-wider mb-1.5">
                 Staff Email Address
               </label>
               <div className="relative">
@@ -195,14 +177,14 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="admin@llo.com"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:border-linkedin focus:ring-1 focus:ring-linkedin"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition shadow-sm"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-slate-800 uppercase tracking-wider mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -212,7 +194,7 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="adminllo"
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:border-linkedin focus:ring-1 focus:ring-linkedin"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition shadow-sm"
                   required
                 />
               </div>
@@ -221,67 +203,61 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-linkedin hover:bg-linkedin-dark text-white font-heading font-bold rounded-xl text-sm shadow transition flex items-center justify-center space-x-2 shadow-linkedin/20"
+              className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-heading font-semibold rounded-xl text-sm shadow-sm shadow-blue-600/20 transition flex items-center justify-center space-x-2"
             >
-              <span>{loading ? 'Authenticating...' : 'Sign In as Administrator'}</span>
+              <span>{loading ? 'Authenticating...' : 'Sign In to Portal'}</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </form>
 
-          {/* Direct One-Click Role Login */}
-          <div className="mt-8 pt-6 border-t border-slate-700">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2.5 text-center">
-              Instant One-Click Login:
+          {/* Quick Account Fill Pills */}
+          <div className="mt-7 pt-5 border-t border-slate-100 text-center">
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2.5">
+              Quick Fill Credentials
             </span>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickDemoLogin('owner')}
-                className="p-2.5 rounded-lg bg-slate-700/60 hover:bg-slate-700 border border-slate-600 text-left transition text-xs group"
+                onClick={() => handleQuickFill('admin@llo.com', 'owner')}
+                className="py-2 px-2.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-left transition group"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-amber-400 block">Admin</span>
-                  <Check className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition" />
-                </div>
-                <span className="text-[10px] text-slate-400">adminllo</span>
+                <div className="text-xs font-bold text-slate-800 group-hover:text-blue-600">Admin</div>
+                <div className="text-[10px] text-slate-400">adminllo</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickDemoLogin('manager')}
-                className="p-2.5 rounded-lg bg-slate-700/60 hover:bg-slate-700 border border-slate-600 text-left transition text-xs group"
+                onClick={() => handleQuickFill('manager@llo.com', 'manager')}
+                className="py-2 px-2.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-left transition group"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-blue-400 block">Manager</span>
-                  <Check className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition" />
-                </div>
-                <span className="text-[10px] text-slate-400">managerllo</span>
+                <div className="text-xs font-bold text-slate-800 group-hover:text-blue-600">Manager</div>
+                <div className="text-[10px] text-slate-400">managerllo</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickDemoLogin('viewer')}
-                className="p-2.5 rounded-lg bg-slate-700/60 hover:bg-slate-700 border border-slate-600 text-left transition text-xs group"
+                onClick={() => handleQuickFill('viewer@llo.com', 'viewer')}
+                className="py-2 px-2.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-left transition group"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-emerald-400 block">Viewer</span>
-                  <Check className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100 transition" />
-                </div>
-                <span className="text-[10px] text-slate-400">viewerllo</span>
+                <div className="text-xs font-bold text-slate-800 group-hover:text-blue-600">Viewer</div>
+                <div className="text-[10px] text-slate-400">viewerllo</div>
               </button>
             </div>
           </div>
         </div>
+      </main>
 
-        {/* Footer */}
-        <div className="mt-6 flex items-center justify-center space-x-2 text-xs text-slate-400">
+      {/* Footer */}
+      <footer className="py-6 text-center text-xs text-slate-500">
+        <div className="max-w-xl mx-auto px-4 flex items-center justify-center space-x-2 text-slate-600 text-xs font-medium">
           <span>Powered by</span>
           <img
             src={niforixLogo}
             alt="Niforix"
-            className="h-5 object-contain inline-block bg-white/95 px-2 py-0.5 rounded shadow-sm"
+            className="h-5 sm:h-6 object-contain inline-block"
           />
         </div>
-      </div>
+      </footer>
     </div>
   );
 };

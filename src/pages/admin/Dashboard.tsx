@@ -53,9 +53,9 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Page Title & Filter Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Volunteer Operations Dashboard</h1>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-slate-900">Operations Dashboard</h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Real-time analytics and participation metrics for LinkedIn Local Owerri
           </p>
@@ -68,7 +68,7 @@ export const Dashboard: React.FC = () => {
           <select
             value={selectedDayNumber}
             onChange={e => setSelectedDayNumber(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-            className="text-xs font-medium bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 focus:border-linkedin focus:ring-1 focus:ring-linkedin"
+            className="text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
           >
             <option value="all">Entire 30-Day Programme</option>
             {programmeDays.map(day => (
@@ -81,7 +81,7 @@ export const Dashboard: React.FC = () => {
           <button
             onClick={loadData}
             title="Refresh analytics"
-            className="p-1.5 text-slate-500 hover:text-linkedin hover:bg-slate-100 rounded-lg transition"
+            className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-50 rounded-xl border border-slate-200 transition"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -91,16 +91,16 @@ export const Dashboard: React.FC = () => {
       {/* Top Key Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Total Registered Volunteers */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Total Volunteers
             </span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-linkedin flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{metrics.total_volunteers}</div>
+          <div className="font-heading text-2xl font-black text-slate-900">{metrics.total_volunteers}</div>
           <div className="text-xs text-slate-500 mt-1 flex items-center space-x-1">
             <span className="font-semibold text-emerald-600">{metrics.active_volunteers_count} active</span>
             <span>•</span>
@@ -109,48 +109,48 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Card 2: Unique Active Volunteers Today */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Unique Volunteers (Today)
             </span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{metrics.unique_volunteers_today}</div>
+          <div className="font-heading text-2xl font-black text-slate-900">{metrics.unique_volunteers_today}</div>
           <div className="text-xs text-slate-500 mt-1">
             Distinct individuals who reported participation today
           </div>
         </div>
 
         {/* Card 3: Total Check-Ins */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Total Check-Ins
             </span>
-            <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
               <Activity className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{metrics.total_submissions}</div>
+          <div className="font-heading text-2xl font-black text-slate-900">{metrics.total_submissions}</div>
           <div className="text-xs text-slate-500 mt-1">
             Total recorded session check-ins across programme
           </div>
         </div>
 
         {/* Card 4: Attendance Rate */}
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Attendance Rate
             </span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{metrics.attendance_rate_percentage}%</div>
+          <div className="font-heading text-2xl font-black text-slate-900">{metrics.attendance_rate_percentage}%</div>
           <div className="text-xs text-slate-500 mt-1">
             Based on active volunteer session opportunities
           </div>
@@ -180,7 +180,7 @@ export const Dashboard: React.FC = () => {
               {metrics.session_counts.morning}
             </div>
             <p className="text-xs text-slate-500">
-              Window: 09:30 AM – 12:00 PM WAT
+              Window: 10:00 AM – 12:00 PM WAT
             </p>
           </div>
 
@@ -199,7 +199,7 @@ export const Dashboard: React.FC = () => {
               {metrics.session_counts.afternoon}
             </div>
             <p className="text-xs text-slate-500">
-              Window: 02:30 PM – 05:00 PM WAT
+              Window: 03:00 PM – 05:00 PM WAT
             </p>
           </div>
 
@@ -218,7 +218,7 @@ export const Dashboard: React.FC = () => {
               {metrics.session_counts.evening}
             </div>
             <p className="text-xs text-slate-500">
-              Window: 07:30 PM – 10:00 PM WAT
+              Window: 08:00 PM – 10:00 PM WAT
             </p>
           </div>
         </div>

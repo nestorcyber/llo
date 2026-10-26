@@ -24,28 +24,28 @@ export const VolunteerDetailModal: React.FC<Props> = ({ volunteer, onClose }) =>
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl border border-slate-200 my-8 animate-fadeIn max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 my-8 animate-fadeIn max-h-[90vh] flex flex-col">
         {/* Modal Header */}
         <div className="flex items-start justify-between pb-4 border-b border-slate-200">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-xl bg-linkedin-navy text-white flex items-center justify-center font-bold text-lg">
+            <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
               {volunteer.full_name.charAt(0)}
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h2 className="text-xl font-bold text-slate-900">{volunteer.full_name}</h2>
+                <h2 className="font-heading text-xl font-bold text-slate-900">{volunteer.full_name}</h2>
                 <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
                     volunteer.is_active
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : 'bg-rose-100 text-rose-800'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : 'bg-rose-50 text-rose-800 border-rose-200'
                   }`}
                 >
                   {volunteer.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
               <div className="flex items-center space-x-3 text-xs text-slate-500 mt-0.5">
-                <span className="font-mono font-bold text-linkedin">{volunteer.volunteer_id}</span>
+                <span className="font-mono font-bold text-blue-600">{volunteer.volunteer_id}</span>
               </div>
             </div>
           </div>
