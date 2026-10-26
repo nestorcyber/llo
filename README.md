@@ -147,7 +147,7 @@ pnpm install
 # Run TypeScript type check
 pnpm exec tsc --noEmit
 
-# Run automated test suite (40 tests across 5 suites)
+# Run automated test suite (45 tests across 6 suites)
 pnpm test
 
 # Build for production
@@ -180,16 +180,13 @@ Demo Volunteer IDs for check-in:
 
 ### Deploying to Supabase
 1. Create a new Supabase project at [https://supabase.com](https://supabase.com).
-2. In the Supabase Dashboard, go to the **SQL Editor**.
-3. Run the migrations in order:
-   - `supabase/migrations/001_initial_schema.sql`
-   - `supabase/migrations/002_functions_and_triggers.sql`
-   - `supabase/migrations/003_rls_policies.sql`
-   - `supabase/migrations/004_seed_data.sql`
-4. Copy your project credentials:
-   - Project URL -> `VITE_SUPABASE_URL` / `SUPABASE_URL`
+2. In the Supabase Dashboard, go to the **SQL Editor** tab.
+3. Open `supabase/production_schema.sql`, copy all contents, paste into the SQL Editor, and click **Run**.
+   - This sets up all 8 tables, indexes, RLS policies, Lagos timezone triggers, generates the 30 days & 90 session slots, and bootstraps the default staff accounts (`admin@llo.com`, `manager@llo.com`, `viewer@llo.com`).
+4. Copy your project credentials from **Project Settings > API**:
+   - Project URL -> `VITE_SUPABASE_URL` and `SUPABASE_URL`
    - Anon public key -> `VITE_SUPABASE_ANON_KEY`
-   - Service role key -> `SUPABASE_SERVICE_ROLE_KEY`
+   - Service role secret key -> `SUPABASE_SERVICE_ROLE_KEY`
 
 ### Deploying to Vercel
 1. Push the repository to GitHub.

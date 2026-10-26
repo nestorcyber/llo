@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Mail, ArrowLeft, AlertCircle, ArrowRight } from 'lucide-react';
-import { StaffProfile, StaffRole } from '../types';
+import { StaffProfile } from '../types';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { dataStore } from '../lib/data-store';
 import niforixLogo from '../assets/niforix-logo.png';
@@ -78,13 +78,13 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
       const matched = staffList.find(s => s.email.toLowerCase() === normalizedEmail);
 
       if (!matched) {
-        setError(`No staff account found for "${email}". Expected admin@llo.com or manager@llo.com.`);
+        setError('Invalid email or password.');
         setLoading(false);
         return;
       }
 
       if (!matched.is_active) {
-        setError('This staff account has been deactivated.');
+        setError('This staff account has been deactivated. Please contact an owner.');
         setLoading(false);
         return;
       }
@@ -95,7 +95,7 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
         (matched.role === 'owner' ? 'adminllo' : `${matched.role}llo`);
 
       if (password !== expectedPassword) {
-        setError(`Incorrect password for ${email}. (Password: "adminllo" for admin, "managerllo" for manager)`);
+        setError('Invalid email or password.');
         setLoading(false);
         return;
       }
@@ -106,13 +106,6 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickFill = (staffEmail: string, role: StaffRole) => {
-    setError(null);
-    setEmail(staffEmail);
-    const pwd = STAFF_PASSWORDS[staffEmail] || (role === 'owner' ? 'adminllo' : `${role}llo`);
-    setPassword(pwd);
   };
 
   return (
@@ -175,7 +168,7 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="admin@llo.com"
+                  placeholder="name@llo.com"
                   className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition shadow-sm"
                   required
                 />
@@ -192,7 +185,7 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
                   type="password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="adminllo"
+                  placeholder="••••••••"
                   className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition shadow-sm"
                   required
                 />
@@ -208,41 +201,6 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
-
-          {/* Quick Account Fill Pills */}
-          <div className="mt-7 pt-5 border-t border-slate-100 text-center">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2.5">
-              Quick Fill Credentials
-            </span>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin@llo.com', 'owner')}
-                className="py-2 px-2.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-left transition group"
-              >
-                <div className="text-xs font-bold text-slate-800 group-hover:text-blue-600">Admin</div>
-                <div className="text-[10px] text-slate-400">adminllo</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickFill('manager@llo.com', 'manager')}
-                className="py-2 px-2.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-left transition group"
-              >
-                <div className="text-xs font-bold text-slate-800 group-hover:text-blue-600">Manager</div>
-                <div className="text-[10px] text-slate-400">managerllo</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleQuickFill('viewer@llo.com', 'viewer')}
-                className="py-2 px-2.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 text-left transition group"
-              >
-                <div className="text-xs font-bold text-slate-800 group-hover:text-blue-600">Viewer</div>
-                <div className="text-[10px] text-slate-400">viewerllo</div>
-              </button>
-            </div>
-          </div>
         </div>
       </main>
 

@@ -221,3 +221,50 @@ BEGIN
     RETURN (v_lagos_now >= v_open_time AND v_lagos_now <= v_close_time);
 END;
 $$;
+
+-- Auto-sync Supabase Auth Users to Staff Profiles
+CREATE OR REPLACE FUNCTION public.handle_new_auth_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    INSERT INTO public.staff_profiles (id, email, full_name, role, is_active)
+    VALUES (
+        NEW.id,
+        LOWER(NEW.email),
+        COALESCE(
+            NEW.raw_user_meta_data->>'full_name',
+            CASE 
+                WHEN LOWER(NEW.email) = 'admin@llo.com' THEN 'Admin LLO'
+                WHEN LOWER(NEW.email) = 'manager@llo.com' THEN 'Manager LLO'
+                WHEN LOWER(NEW.email) = 'viewer@llo.com' THEN 'Viewer LLO'
+                ELSE INITCAP(REPLACE(SPLIT_PART(NEW.email, '@', 1), '.', ' '))
+            END
+        ),
+        COALESCE(
+            (NEW.raw_user_meta_data->>'role')::text,
+            CASE 
+                WHEN LOWER(NEW.email) = 'admin@llo.com' THEN 'owner'
+                WHEN LOWER(NEW.email) = 'manager@llo.com' THEN 'manager'
+                ELSE 'viewer'
+            END
+        ),
+        true
+    )
+    ON CONFLICT (id) DO UPDATE
+    SET 
+        email = EXCLUDED.email,
+        full_name = EXCLUDED.full_name,
+        role = EXCLUDED.role;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_new_auth_user();

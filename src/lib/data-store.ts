@@ -232,77 +232,20 @@ function initializeDefaultData(): StoreState {
     },
   ];
 
-  // Initial Sample Check-Ins (e.g. for Day 1)
-  const d1MorningSlot = session_slots.find(s => s.programme_day_id === 'day-prog-llo-2026-1' && s.session_code === 'morning')!;
-  const d1AfternoonSlot = session_slots.find(s => s.programme_day_id === 'day-prog-llo-2026-1' && s.session_code === 'afternoon')!;
-
-  const task_submissions: TaskSubmission[] = [
-    {
-      id: 'sub-init-1',
-      programme_id: progId,
-      programme_day_id: 'day-prog-llo-2026-1',
-      session_slot_id: d1MorningSlot.id,
-      volunteer_id: volunteers[0].id,
-      status: 'reported',
-      submitted_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-      submitted_ip: '127.0.0.1',
-      user_agent: 'Mozilla/5.0 Volunteer Mobile',
-      voided_at: null,
-      voided_by: null,
-      void_reason: null,
-    },
-    {
-      id: 'sub-init-2',
-      programme_id: progId,
-      programme_day_id: 'day-prog-llo-2026-1',
-      session_slot_id: d1MorningSlot.id,
-      volunteer_id: volunteers[1].id,
-      status: 'reported',
-      submitted_at: new Date(Date.now() - 3600000 * 1.5).toISOString(),
-      submitted_ip: '127.0.0.1',
-      user_agent: 'Mozilla/5.0 Volunteer Mobile',
-      voided_at: null,
-      voided_by: null,
-      void_reason: null,
-    },
-    {
-      id: 'sub-init-3',
-      programme_id: progId,
-      programme_day_id: 'day-prog-llo-2026-1',
-      session_slot_id: d1AfternoonSlot.id,
-      volunteer_id: volunteers[2].id,
-      status: 'reported',
-      submitted_at: new Date(Date.now() - 3600000 * 0.8).toISOString(),
-      submitted_ip: '127.0.0.1',
-      user_agent: 'Mozilla/5.0 Volunteer Mobile',
-      voided_at: null,
-      voided_by: null,
-      void_reason: null,
-    },
-  ];
+  // Clean initial state: No demo check-ins for production readiness
+  const task_submissions: TaskSubmission[] = [];
 
   const audit_logs: AuditLog[] = [
     {
-      id: 'log-1',
+      id: 'log-sys-init',
       staff_id: staff_profiles[0].id,
       staff_email: staff_profiles[0].email,
       action: 'PROGRAMME_CREATED',
       target_type: 'programme',
       target_id: progId,
-      details: { title: programmes[0].title, duration_days: 30 },
+      details: { title: programmes[0].title, duration_days: 30, timezone: 'Africa/Lagos' },
       ip_address: '127.0.0.1',
-      created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-    },
-    {
-      id: 'log-2',
-      staff_id: staff_profiles[0].id,
-      staff_email: staff_profiles[0].email,
-      action: 'CALENDAR_GENERATED',
-      target_type: 'programme',
-      target_id: progId,
-      details: { days_generated: 30, sessions_generated: 90 },
-      ip_address: '127.0.0.1',
-      created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+      created_at: new Date().toISOString(),
     },
   ];
 
@@ -352,6 +295,13 @@ class Store {
                 }
               }
             }
+          }
+
+          // Purge legacy demo submissions so live tracking starts completely clean
+          if (parsed && Array.isArray(parsed.task_submissions)) {
+            parsed.task_submissions = parsed.task_submissions.filter(
+              (sub: any) => !sub.id.startsWith('sub-init-')
+            );
           }
           return parsed;
         }

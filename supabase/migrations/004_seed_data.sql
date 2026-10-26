@@ -1,13 +1,13 @@
 -- Migration: 004_seed_data.sql
--- Description: Initial seed data for LinkedIn Local Owerri 30-day Programme
+-- Description: Production seed data for LinkedIn Local Owerri 30-day Programme
+-- Includes staff bootstrap in auth.users and staff_profiles
 
 DO $$
 DECLARE
     v_prog_id UUID;
-    v_day_1_id UUID;
-    v_morning_slot_id UUID;
-    v_afternoon_slot_id UUID;
-    v_evening_slot_id UUID;
+    v_admin_id UUID := gen_random_uuid();
+    v_manager_id UUID := gen_random_uuid();
+    v_viewer_id UUID := gen_random_uuid();
 BEGIN
     -- 1. Create or retrieve active programme
     INSERT INTO programmes (
@@ -17,7 +17,8 @@ BEGIN
         start_date,
         duration_days,
         timezone,
-        status
+        status,
+        active_day_number
     )
     VALUES (
         'LinkedIn Local Owerri 30-Day Volunteer Programme',
@@ -26,7 +27,8 @@ BEGIN
         CURRENT_DATE,
         30,
         'Africa/Lagos',
-        'active'
+        'active',
+        1
     )
     ON CONFLICT (slug) DO UPDATE
     SET status = 'active'
@@ -35,52 +37,104 @@ BEGIN
     -- 2. Generate the 30 days and 90 session slots
     PERFORM generate_programme_calendar(v_prog_id);
 
-    -- 3. Retrieve Day 1 session slots
-    SELECT id INTO v_day_1_id FROM programme_days WHERE programme_id = v_prog_id AND day_number = 1;
+    -- 3. Bootstrap staff accounts in auth.users & staff_profiles
+    -- Admin LLO (admin@llo.com / adminllo)
+    IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'admin@llo.com') THEN
+        INSERT INTO auth.users (
+            id,
+            instance_id,
+            email,
+            encrypted_password,
+            email_confirmed_at,
+            raw_app_meta_data,
+            raw_user_meta_data,
+            role,
+            aud,
+            created_at,
+            updated_at
+        ) VALUES (
+            v_admin_id,
+            '00000000-0000-0000-0000-000000000000',
+            'admin@llo.com',
+            crypt('adminllo', gen_salt('bf')),
+            now(),
+            '{"provider":"email","providers":["email"]}'::jsonb,
+            '{"full_name":"Admin LLO","role":"owner"}'::jsonb,
+            'authenticated',
+            'authenticated',
+            now(),
+            now()
+        );
 
-    SELECT id INTO v_morning_slot_id FROM session_slots WHERE programme_day_id = v_day_1_id AND session_code = 'morning';
-    SELECT id INTO v_afternoon_slot_id FROM session_slots WHERE programme_day_id = v_day_1_id AND session_code = 'afternoon';
-    SELECT id INTO v_evening_slot_id FROM session_slots WHERE programme_day_id = v_day_1_id AND session_code = 'evening';
-
-    -- 4. Seed sample tasks for Day 1
-    -- Morning tasks
-    IF v_morning_slot_id IS NOT NULL THEN
-        INSERT INTO session_tasks (session_slot_id, title, description, category, status)
-        VALUES 
-            (v_morning_slot_id, 'Social Media Blast & Morning Amplification', 'Share and amplify official morning announcements on LinkedIn & Twitter.', 'Media & Publicity', 'open'),
-            (v_morning_slot_id, 'Attendee Pre-registration Verification', 'Review incoming registration questions and provide onboarding support.', 'Registration', 'open'),
-            (v_morning_slot_id, 'Morning Logistics & Venue Prep Call', 'Participate in the 15-minute logistics alignment check.', 'Logistics', 'open')
-        ON CONFLICT DO NOTHING;
+        INSERT INTO public.staff_profiles (id, email, full_name, role, is_active)
+        VALUES (v_admin_id, 'admin@llo.com', 'Admin LLO', 'owner', true)
+        ON CONFLICT (id) DO UPDATE SET full_name = 'Admin LLO', role = 'owner', is_active = true;
     END IF;
 
-    -- Afternoon tasks
-    IF v_afternoon_slot_id IS NOT NULL THEN
-        INSERT INTO session_tasks (session_slot_id, title, description, category, status)
-        VALUES 
-            (v_afternoon_slot_id, 'Speaker & Guest Coordinator Liaison', 'Confirm itinerary and media requirements with afternoon panel speakers.', 'Protocol', 'open'),
-            (v_afternoon_slot_id, 'Community Question Moderation & Triage', 'Sort through participant inquiries and escalate key technical queries.', 'Technical', 'open'),
-            (v_afternoon_slot_id, 'Sponsorship Content Verification', 'Review digital sponsor collaterals for social media posting schedule.', 'Media & Publicity', 'open')
-        ON CONFLICT DO NOTHING;
+    -- Manager LLO (manager@llo.com / managerllo)
+    IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'manager@llo.com') THEN
+        INSERT INTO auth.users (
+            id,
+            instance_id,
+            email,
+            encrypted_password,
+            email_confirmed_at,
+            raw_app_meta_data,
+            raw_user_meta_data,
+            role,
+            aud,
+            created_at,
+            updated_at
+        ) VALUES (
+            v_manager_id,
+            '00000000-0000-0000-0000-000000000000',
+            'manager@llo.com',
+            crypt('managerllo', gen_salt('bf')),
+            now(),
+            '{"provider":"email","providers":["email"]}'::jsonb,
+            '{"full_name":"Manager LLO","role":"manager"}'::jsonb,
+            'authenticated',
+            'authenticated',
+            now(),
+            now()
+        );
+
+        INSERT INTO public.staff_profiles (id, email, full_name, role, is_active)
+        VALUES (v_manager_id, 'manager@llo.com', 'Manager LLO', 'manager', true)
+        ON CONFLICT (id) DO UPDATE SET full_name = 'Manager LLO', role = 'manager', is_active = true;
     END IF;
 
-    -- Evening tasks
-    IF v_evening_slot_id IS NOT NULL THEN
-        INSERT INTO session_tasks (session_slot_id, title, description, category, status)
-        VALUES 
-            (v_evening_slot_id, 'Evening Daily Engagement Standup Report', 'Submit recap of daily tasks and flag any pending volunteer needs.', 'General', 'open'),
-            (v_evening_slot_id, 'Post-Session Community Discussion Thread Moderation', 'Engage participants in the official evening community networking thread.', 'Media & Publicity', 'open')
-        ON CONFLICT DO NOTHING;
-    END IF;
+    -- Viewer LLO (viewer@llo.com / viewerllo)
+    IF NOT EXISTS (SELECT 1 FROM auth.users WHERE email = 'viewer@llo.com') THEN
+        INSERT INTO auth.users (
+            id,
+            instance_id,
+            email,
+            encrypted_password,
+            email_confirmed_at,
+            raw_app_meta_data,
+            raw_user_meta_data,
+            role,
+            aud,
+            created_at,
+            updated_at
+        ) VALUES (
+            v_viewer_id,
+            '00000000-0000-0000-0000-000000000000',
+            'viewer@llo.com',
+            crypt('viewerllo', gen_salt('bf')),
+            now(),
+            '{"provider":"email","providers":["email"]}'::jsonb,
+            '{"full_name":"Viewer LLO","role":"viewer"}'::jsonb,
+            'authenticated',
+            'authenticated',
+            now(),
+            now()
+        );
 
-    -- 5. Seed sample volunteers
-    INSERT INTO volunteers (volunteer_id, full_name, email, phone, track, is_active, notes)
-    VALUES
-        ('LLO-VOL-001', 'Chinedu Okeke', 'chinedu.okeke@example.com', '+2348031234567', 'Logistics', true, 'Team Lead - Logistics'),
-        ('LLO-VOL-002', 'Amina Yusuf', 'amina.yusuf@example.com', '+2348022345678', 'Media & Publicity', true, 'Content Creator'),
-        ('LLO-VOL-003', 'Ngozi Eze', 'ngozi.eze@example.com', '+2348093456789', 'Protocol', true, 'VIP Liaison'),
-        ('LLO-VOL-004', 'Emeka Nwosu', 'emeka.nwosu@example.com', '+2348144567890', 'Technical', true, 'AV & Stream Operator'),
-        ('LLO-VOL-005', 'Fatima Bello', 'fatima.bello@example.com', '+2348185678901', 'Registration', true, 'Check-in Desk'),
-        ('LLO-VOL-006', 'Kelechi Umeh', 'kelechi.umeh@example.com', '+2347066789012', 'General', true, 'Floater Volunteer')
-    ON CONFLICT (volunteer_id) DO NOTHING;
+        INSERT INTO public.staff_profiles (id, email, full_name, role, is_active)
+        VALUES (v_viewer_id, 'viewer@llo.com', 'Viewer LLO', 'viewer', true)
+        ON CONFLICT (id) DO UPDATE SET full_name = 'Viewer LLO', role = 'viewer', is_active = true;
+    END IF;
 
 END $$;

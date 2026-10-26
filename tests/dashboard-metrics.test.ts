@@ -17,9 +17,10 @@ describe('Dashboard Metrics & Operational Analytics', () => {
     const morningSlot = schedule.slots.find(s => s.session_code === 'morning')!;
     const afternoonSlot = schedule.slots.find(s => s.session_code === 'afternoon')!;
 
-    // Force open both slots for test
-    morningSlot.is_override_open = true;
-    afternoonSlot.is_override_open = true;
+    // Force open both slots in the data store for deterministic testing
+    const staff = dataStore.getStaff()[0];
+    dataStore.setSlotOverride(morningSlot.id, true, staff);
+    dataStore.setSlotOverride(afternoonSlot.id, true, staff);
 
     // Same volunteer checks into 2 different sessions on the same day
     const volId = 'LLO-VOL-005';
