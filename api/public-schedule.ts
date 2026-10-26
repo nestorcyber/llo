@@ -39,13 +39,13 @@ export async function handlePublicSchedule(req: any, res: any) {
         .eq('programme_id', prog.id)
         .order('day_number', { ascending: true });
 
-      // Match today's Lagos date automatically, unless specific day requested or configured
+      // Priority: 1. Requested day param -> 2. Admin configured active_day_number -> 3. Today's Lagos calendar date -> 4. Day 1
       let currentDay = requestedDay ? days?.find(d => d.day_number === requestedDay) : undefined;
-      if (!currentDay) {
-        currentDay = days?.find(d => d.calendar_date === todayLagos);
-      }
       if (!currentDay && prog.active_day_number) {
         currentDay = days?.find(d => d.day_number === prog.active_day_number);
+      }
+      if (!currentDay) {
+        currentDay = days?.find(d => d.calendar_date === todayLagos);
       }
       if (!currentDay) {
         currentDay = days?.[0];

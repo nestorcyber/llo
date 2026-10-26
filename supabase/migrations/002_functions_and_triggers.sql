@@ -109,7 +109,7 @@ BEGIN
         )
         ON CONFLICT (programme_day_id, session_code) DO NOTHING;
 
-        -- 3. Evening Session (8:00 PM)
+        -- 3. Evening Session (7:00 PM)
         INSERT INTO session_slots (
             programme_day_id,
             session_code,
@@ -121,10 +121,10 @@ BEGIN
         VALUES (
             v_day_id,
             'evening',
-            'Evening Session (8:00 PM)',
-            '20:00:00'::TIME,
-            30,  -- opens at 07:30 PM
-            120  -- closes at 10:00 PM
+            'Evening Session (7:00 PM)',
+            '19:00:00'::TIME,
+            30,  -- opens at 06:30 PM
+            120  -- closes at 09:00 PM
         )
         ON CONFLICT (programme_day_id, session_code) DO NOTHING;
 

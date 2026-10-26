@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS programme_days (
     CONSTRAINT uq_programme_calendar_date UNIQUE (programme_id, calendar_date)
 );
 
--- 3. Session Slots (3 per day: Morning 10:00 AM, Afternoon 3:00 PM, Evening 8:00 PM)
+-- 3. Session Slots (3 per day: Morning 10:00 AM, Afternoon 3:00 PM, Evening 7:00 PM)
 CREATE TABLE IF NOT EXISTS session_slots (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     programme_day_id UUID NOT NULL REFERENCES programme_days(id) ON DELETE CASCADE,

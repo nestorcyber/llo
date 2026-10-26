@@ -136,6 +136,7 @@ describe('Africa/Lagos Timezone Calculations', () => {
   it('formats 12-hour time correctly', () => {
     expect(format12HourTime('10:00:00')).toBe('10:00 AM');
     expect(format12HourTime('15:00:00')).toBe('3:00 PM');
+    expect(format12HourTime('19:00:00')).toBe('7:00 PM');
     expect(format12HourTime('20:00:00')).toBe('8:00 PM');
   });
 });

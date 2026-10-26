@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS programme_days (
     CONSTRAINT uq_programme_calendar_date UNIQUE (programme_id, calendar_date)
 );
 
--- 1.3 Session Slots (Morning 10:00 AM, Afternoon 3:00 PM, Evening 8:00 PM)
+-- 1.3 Session Slots (Morning 10:00 AM, Afternoon 3:00 PM, Evening 7:00 PM)
 CREATE TABLE IF NOT EXISTS session_slots (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     programme_day_id UUID NOT NULL REFERENCES programme_days(id) ON DELETE CASCADE,
@@ -256,7 +256,7 @@ BEGIN
         )
         ON CONFLICT (programme_day_id, session_code) DO NOTHING;
 
-        -- 3. Evening Session (8:00 PM WAT, 07:30 PM - 10:00 PM window)
+        -- 3. Evening Session (7:00 PM WAT, 06:30 PM - 09:00 PM window)
         INSERT INTO session_slots (
             programme_day_id,
             session_code,
@@ -268,8 +268,8 @@ BEGIN
         VALUES (
             v_day_id,
             'evening',
-            'Evening Session (8:00 PM)',
-            '20:00:00'::TIME,
+            'Evening Session (7:00 PM)',
+            '19:00:00'::TIME,
             30,
             120
         )

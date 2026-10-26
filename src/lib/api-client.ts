@@ -20,7 +20,10 @@ export async function fetchPublicSchedule(dayNumber?: number): Promise<PublicSch
     console.warn('Falling back to local data store for public schedule:', err);
   }
 
-  // Fallback to data store
+  // Fallback to data store (ensure synced first if possible)
+  if (!dataStore.isLiveConnected()) {
+    await dataStore.syncWithLiveDatabase();
+  }
   return dataStore.getPublicSchedule(dayNumber);
 }
 

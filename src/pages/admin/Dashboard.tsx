@@ -215,14 +215,14 @@ export const Dashboard: React.FC = () => {
                 <span className="text-sm font-bold text-slate-800">Evening Session</span>
               </div>
               <span className="text-xs font-mono font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded">
-                8:00 PM
+                7:00 PM
               </span>
             </div>
             <div className="text-2xl font-bold text-slate-900 mb-1">
               {metrics.session_counts.evening}
             </div>
             <p className="text-xs text-slate-500">
-              Window: 08:00 PM – 10:00 PM WAT
+              Window: 07:00 PM – 09:00 PM WAT
             </p>
           </div>
         </div>

@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   X,
   FileText,
+  RefreshCw,
 } from 'lucide-react';
 import { StaffProfile, Volunteer } from '../../types';
 import { dataStore } from '../../lib/data-store';
@@ -38,11 +39,13 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
   const [newPhone, setNewPhone] = useState('');
   const [newNotes, setNewNotes] = useState('');
   const [addError, setAddError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Import CSV Modal
   const [showImportModal, setShowImportModal] = useState(false);
   const [csvText, setCsvText] = useState('');
   const [importStatus, setImportStatus] = useState<{ message: string; isError?: boolean } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
 
   // Status Toggle Modal (Confirmation)
   const [toggleTarget, setToggleTarget] = useState<Volunteer | null>(null);
@@ -74,7 +77,7 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
     setShowAddModal(true);
   };
 
-  const handleSaveVolunteer = (e: React.FormEvent) => {
+  const handleSaveVolunteer = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddError(null);
 
@@ -89,23 +92,30 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
       return;
     }
 
-    const res = dataStore.addVolunteer(
-      {
-        volunteer_id: normalized,
-        full_name: newName.trim(),
-        email: newEmail.trim() || null,
-        phone: newPhone.trim() || null,
-        is_active: true,
-        notes: newNotes.trim() || null,
-      },
-      currentStaff
-    );
+    setIsSubmitting(true);
+    try {
+      const res = await dataStore.addVolunteer(
+        {
+          volunteer_id: normalized,
+          full_name: newName.trim(),
+          email: newEmail.trim() || null,
+          phone: newPhone.trim() || null,
+          is_active: true,
+          notes: newNotes.trim() || null,
+        },
+        currentStaff
+      );
 
-    if (res.success) {
-      setShowAddModal(false);
-      loadVolunteers();
-    } else {
-      setAddError(res.message);
+      if (res.success) {
+        setShowAddModal(false);
+        loadVolunteers();
+      } else {
+        setAddError(res.message);
+      }
+    } catch (err: any) {
+      setAddError(err?.message || 'Failed to save volunteer to database.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -134,7 +144,7 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
     reader.readAsText(file);
   };
 
-  const handleProcessCsvImport = () => {
+  const handleProcessCsvImport = async () => {
     if (!csvText.trim()) {
       setImportStatus({ message: 'Please select or paste CSV text first.', isError: true });
       return;
@@ -158,27 +168,34 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
         notes: r.notes,
       }));
 
-    const result = dataStore.importVolunteers(validRowsToImport, currentStaff);
-    setImportStatus({
-      message: `${result.message} (${parseResult.errorCount} malformed rows excluded).`,
-      isError: !result.success,
-    });
+    setIsImporting(true);
+    try {
+      const result = await dataStore.importVolunteers(validRowsToImport, currentStaff);
+      setImportStatus({
+        message: `${result.message} (${parseResult.errorCount} malformed rows excluded).`,
+        isError: !result.success,
+      });
 
-    if (result.success) {
-      loadVolunteers();
-      setTimeout(() => {
-        setShowImportModal(false);
-        setImportStatus(null);
-        setCsvText('');
-      }, 1500);
+      if (result.success) {
+        loadVolunteers();
+        setTimeout(() => {
+          setShowImportModal(false);
+          setImportStatus(null);
+          setCsvText('');
+        }, 1500);
+      }
+    } catch (err: any) {
+      setImportStatus({ message: err?.message || 'Import failed.', isError: true });
+    } finally {
+      setIsImporting(false);
     }
   };
 
-  const handleConfirmToggleActive = () => {
+  const handleConfirmToggleActive = async () => {
     if (!toggleTarget) return;
     const newStatus = !toggleTarget.is_active;
 
-    dataStore.updateVolunteer(toggleTarget.id, { is_active: newStatus }, currentStaff);
+    await dataStore.updateVolunteer(toggleTarget.id, { is_active: newStatus }, currentStaff);
     setToggleTarget(null);
     loadVolunteers();
   };
@@ -488,9 +505,17 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-xs font-bold text-white bg-linkedin hover:bg-linkedin-dark rounded-lg shadow transition"
+                disabled={isSubmitting}
+                className="px-4 py-2 text-xs font-bold text-white bg-linkedin hover:bg-linkedin-dark disabled:opacity-50 rounded-lg shadow transition flex items-center space-x-1.5"
               >
-                Save Volunteer Record
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving to Database...</span>
+                  </>
+                ) : (
+                  <span>Save Volunteer Record</span>
+                )}
               </button>
             </div>
           </form>
@@ -585,9 +610,17 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
               <button
                 type="button"
                 onClick={handleProcessCsvImport}
-                className="px-4 py-2 text-xs font-bold text-white bg-linkedin hover:bg-linkedin-dark rounded-lg shadow transition"
+                disabled={isImporting}
+                className="px-4 py-2 text-xs font-bold text-white bg-linkedin hover:bg-linkedin-dark disabled:opacity-50 rounded-lg shadow transition flex items-center space-x-1.5"
               >
-                Validate & Import
+                {isImporting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Importing to Database...</span>
+                  </>
+                ) : (
+                  <span>Validate & Import</span>
+                )}
               </button>
             </div>
           </div>

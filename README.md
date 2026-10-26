@@ -2,7 +2,7 @@
 
 Production-oriented volunteer engagement tracking web application for LinkedIn Local Owerri.
 
-The application manages a 30-day volunteer programme with three daily sessions at **10:00 AM (Morning)**, **3:00 PM (Afternoon)**, and **8:00 PM (Evening)** Nigeria time (**Africa/Lagos**, UTC+1). Administrators configure tasks for each session. Volunteers enter their assigned ID, choose their session and task, and report participation with instant confirmation and duplicate prevention.
+The application manages a 30-day volunteer programme with three daily sessions at **10:00 AM (Morning)**, **3:00 PM (Afternoon)**, and **7:00 PM (Evening)** Nigeria time (**Africa/Lagos**, UTC+1). Administrators configure tasks for each session. Volunteers enter their assigned ID, choose their session and task, and report participation with instant confirmation and duplicate prevention.
 
 ---
 
@@ -24,7 +24,7 @@ The application manages a 30-day volunteer programme with three daily sessions a
 - **Branding**: LinkedIn Local Owerri official theme, mobile-first single-page check-in.
 - **Inputs**:
   - Assigned Volunteer ID (auto-capitalized, trimmed, e.g. `LLO-VOL-001`).
-  - Programme Session (10:00 AM Morning, 3:00 PM Afternoon, 8:00 PM Evening) with real-time window status (`OPEN NOW`, `UPCOMING`, `CLOSED`).
+  - Programme Session (10:00 AM Morning, 3:00 PM Afternoon, 7:00 PM Evening) with real-time window status (`OPEN NOW`, `UPCOMING`, `CLOSED`).
   - Completed Task (dynamically loaded from database for selected session and current programme day).
   - Submit Button (instant feedback, debouncing, duplicate protection).
 - **Security & Privacy**:
@@ -63,7 +63,7 @@ The system architecture includes:
 - **Standard Sessions**:
   - **Morning Session (10:00 AM)**: Window opens at 09:30 AM (30 min before), closes at 12:00 PM (120 min after).
   - **Afternoon Session (3:00 PM)**: Window opens at 02:30 PM (30 min before), closes at 05:00 PM (120 min after).
-  - **Evening Session (8:00 PM)**: Window opens at 07:30 PM (30 min before), closes at 10:00 PM (120 min after).
+  - **Evening Session (7:00 PM)**: Window opens at 06:30 PM (30 min before), closes at 09:00 PM (120 min after).
 - **Calendar Generation**:
   - Generated via stored procedure `generate_programme_calendar(programme_id UUID)`.
   - Generates 30 programme days with 3 session slots per day (90 slots total).

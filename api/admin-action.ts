@@ -35,7 +35,15 @@ export async function handleAdminAction(req: any, res: any) {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505') {
+            return res.status(400).json({
+              success: false,
+              message: `Volunteer ID "${payload.volunteer_id}" already exists in the database.`,
+            });
+          }
+          throw error;
+        }
         return res.status(200).json({ success: true, data });
       }
 

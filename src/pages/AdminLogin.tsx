@@ -105,22 +105,21 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between font-sans">
       {/* Top Navbar */}
       <header className="bg-white border-b border-slate-200/80">
-        <div className="max-w-xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <img
-              src={lloLogo}
-              alt="LinkedIn Local Owerri"
-              className="h-7 sm:h-8 object-contain"
-            />
-          </div>
-
+        <div className="max-w-xl mx-auto px-4 sm:px-6 py-4 relative flex items-center justify-center">
           <button
             onClick={onBackToVolunteerPage}
-            className="text-xs font-semibold text-slate-600 hover:text-blue-600 flex items-center space-x-1.5 py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white transition shadow-sm"
+            className="absolute left-4 sm:left-6 text-xs font-semibold text-slate-600 hover:text-blue-600 flex items-center space-x-1.5 py-1.5 px-3 rounded-lg border border-slate-200 hover:border-slate-300 bg-white transition shadow-sm"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Volunteer Check-In</span>
+            <span className="hidden sm:inline">Volunteer Check-In</span>
+            <span className="sm:hidden">Back</span>
           </button>
+
+          <img
+            src={lloLogo}
+            alt="LinkedIn Local Owerri"
+            className="h-7 sm:h-8 object-contain mx-auto"
+          />
         </div>
       </header>
 
@@ -128,12 +127,14 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
       <main className="max-w-md w-full mx-auto px-4 py-8 flex-1 flex flex-col justify-center">
         <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-9 shadow-sm">
           {/* Header */}
-          <div className="text-center mb-6">
-            <img
-              src={lloLogo}
-              alt="LinkedIn Local Owerri"
-              className="h-10 sm:h-11 object-contain mx-auto mb-3"
-            />
+          <div className="flex flex-col items-center text-center mb-6">
+            <div className="flex items-center justify-center mb-3">
+              <img
+                src={lloLogo}
+                alt="LinkedIn Local Owerri"
+                className="h-11 sm:h-12 object-contain mx-auto block"
+              />
+            </div>
             <h2 className="font-heading text-2xl font-extrabold text-slate-900 tracking-tight">
               Staff Sign In
             </h2>

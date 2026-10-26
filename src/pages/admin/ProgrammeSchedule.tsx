@@ -10,6 +10,7 @@ import {
   Sparkles,
   Users,
   Check,
+  RefreshCw,
 } from 'lucide-react';
 import { Programme, ProgrammeDay, SessionSlot, StaffProfile } from '../../types';
 import { dataStore } from '../../lib/data-store';
@@ -56,13 +57,21 @@ export const ProgrammeSchedule: React.FC<Props> = ({ currentStaff }) => {
     }
   };
 
-  const handleSetActiveDay = (dayNumber: number) => {
-    const res = dataStore.setActiveProgrammeDay(dayNumber, currentStaff, true);
-    if (res.success) {
-      setActiveSuccessMsg(res.message);
-      setTimeout(() => setActiveSuccessMsg(null), 4000);
-      loadData();
-      if (selectedDayId) loadDaySlots(selectedDayId);
+  const [isActivatingDay, setIsActivatingDay] = useState(false);
+  const [updatingSlotId, setUpdatingSlotId] = useState<string | null>(null);
+
+  const handleSetActiveDay = async (dayNumber: number) => {
+    setIsActivatingDay(true);
+    try {
+      const res = await dataStore.setActiveProgrammeDay(dayNumber, currentStaff, false);
+      if (res.success) {
+        setActiveSuccessMsg(res.message);
+        setTimeout(() => setActiveSuccessMsg(null), 4000);
+        loadData();
+        if (selectedDayId) loadDaySlots(selectedDayId);
+      }
+    } finally {
+      setIsActivatingDay(false);
     }
   };
 
@@ -71,14 +80,19 @@ export const ProgrammeSchedule: React.FC<Props> = ({ currentStaff }) => {
     setDaySlots(slots as any);
   };
 
-  const handleToggleOverride = (slotId: string, currentOverride: boolean | null) => {
+  const handleToggleOverride = async (slotId: string, currentOverride: boolean | null) => {
     // Cycles: null (auto) -> true (force open) -> false (force closed) -> null (auto)
     let nextOverride: boolean | null = true;
     if (currentOverride === true) nextOverride = false;
     else if (currentOverride === false) nextOverride = null;
 
-    dataStore.setSlotOverride(slotId, nextOverride, currentStaff);
-    if (selectedDayId) loadDaySlots(selectedDayId);
+    setUpdatingSlotId(slotId);
+    try {
+      await dataStore.setSlotOverride(slotId, nextOverride, currentStaff);
+      if (selectedDayId) loadDaySlots(selectedDayId);
+    } finally {
+      setUpdatingSlotId(null);
+    }
   };
 
   const handleArchiveProgramme = () => {
@@ -146,27 +160,30 @@ export const ProgrammeSchedule: React.FC<Props> = ({ currentStaff }) => {
         <div className="flex gap-2 overflow-x-auto pb-2">
           {days.map(d => {
             const isSelected = d.id === selectedDayId;
-            const isActiveForVolunteers = d.day_number === programme?.active_day_number;
+            const currentActiveDay = programme?.active_day_number || 1;
+            const isActiveForVolunteers = d.day_number === currentActiveDay;
             return (
               <button
                 key={d.id}
                 onClick={() => setSelectedDayId(d.id)}
-                className={`relative flex-shrink-0 px-3.5 py-2 rounded-xl text-center border transition ${
-                  isSelected
-                    ? 'bg-linkedin text-white border-linkedin shadow-sm'
-                    : isActiveForVolunteers
-                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                className={`relative flex-shrink-0 px-3.5 py-2.5 rounded-xl text-center border transition ${
+                  isActiveForVolunteers
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-300 font-bold'
+                    : isSelected
+                    ? 'bg-blue-50 text-blue-900 border-blue-400 ring-1 ring-blue-400 font-semibold'
                     : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                 }`}
               >
                 {isActiveForVolunteers && (
                   <span
-                    className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white"
+                    className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 bg-amber-400 text-amber-950 text-[9px] font-black rounded-full shadow border-2 border-white uppercase tracking-wider"
                     title="Active for Volunteers"
-                  />
+                  >
+                    Active
+                  </span>
                 )}
                 <div className="text-xs font-bold leading-tight">Day {d.day_number}</div>
-                <div className={`text-[10px] ${isSelected ? 'text-blue-100' : isActiveForVolunteers ? 'text-emerald-700 font-semibold' : 'text-slate-400'}`}>
+                <div className={`text-[10px] ${isActiveForVolunteers ? 'text-blue-100 font-bold' : isSelected ? 'text-blue-700 font-semibold' : 'text-slate-400'}`}>
                   {isActiveForVolunteers ? 'ACTIVE' : d.calendar_date.slice(5)}
                 </div>
               </button>
@@ -181,14 +198,14 @@ export const ProgrammeSchedule: React.FC<Props> = ({ currentStaff }) => {
           {/* Active Day Status Card */}
           <div
             className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs ${
-              selectedDay.day_number === programme?.active_day_number
-                ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
+              selectedDay.day_number === (programme?.active_day_number || 1)
+                ? 'bg-blue-50/70 border-blue-300 text-blue-950'
                 : 'bg-white border-slate-200 text-slate-700'
             }`}
           >
             <div className="flex items-center space-x-3">
-              {selectedDay.day_number === programme?.active_day_number ? (
-                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0">
+              {selectedDay.day_number === (programme?.active_day_number || 1) ? (
+                <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
               ) : (
@@ -199,18 +216,18 @@ export const ProgrammeSchedule: React.FC<Props> = ({ currentStaff }) => {
               <div>
                 <div className="flex items-center space-x-2">
                   <span className="font-bold text-sm">
-                    {selectedDay.day_number === programme?.active_day_number
+                    {selectedDay.day_number === (programme?.active_day_number || 1)
                       ? `Day ${selectedDay.day_number} is LIVE & ACTIVE for Volunteers`
                       : `Day ${selectedDay.day_number} is currently inactive for check-in`}
                   </span>
-                  {selectedDay.day_number === programme?.active_day_number && (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-600 text-white uppercase tracking-wider">
+                  {selectedDay.day_number === (programme?.active_day_number || 1) && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-600 text-white uppercase tracking-wider">
                       Live
                     </span>
                   )}
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {selectedDay.day_number === programme?.active_day_number
+                  {selectedDay.day_number === (programme?.active_day_number || 1)
                     ? 'Volunteers accessing the check-in page are automatically directed to this day.'
                     : `Volunteers are currently directed to Day ${programme?.active_day_number || 1}. Activate this day to switch volunteer check-ins here.`}
                 </p>
@@ -219,18 +236,28 @@ export const ProgrammeSchedule: React.FC<Props> = ({ currentStaff }) => {
 
             {canManage && (
               <div className="flex-shrink-0">
-                {selectedDay.day_number === programme?.active_day_number ? (
-                  <span className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-300">
+                {selectedDay.day_number === (programme?.active_day_number || 1) ? (
+                  <span className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-blue-100 text-blue-800 text-xs font-bold rounded-lg border border-blue-300">
                     <Check className="w-3.5 h-3.5" />
                     <span>Active for Volunteers</span>
                   </span>
                 ) : (
                   <button
                     onClick={() => handleSetActiveDay(selectedDay.day_number)}
-                    className="flex items-center space-x-1.5 px-3.5 py-2 bg-linkedin hover:bg-linkedin-dark text-white text-xs font-bold rounded-lg shadow-sm transition"
+                    disabled={isActivatingDay}
+                    className="flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-sm transition"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Set Day {selectedDay.day_number} Active for Volunteers</span>
+                    {isActivatingDay ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Activating Day {selectedDay.day_number}...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Set Day {selectedDay.day_number} Active for Volunteers</span>
+                      </>
+                    )}
                   </button>
                 )}
               </div>
@@ -319,6 +346,7 @@ export const ProgrammeSchedule: React.FC<Props> = ({ currentStaff }) => {
                       {canManage && (
                         <button
                           onClick={() => handleToggleOverride(slot.id, slot.is_override_open)}
+                          disabled={updatingSlotId === slot.id}
                           className={`w-full py-2 px-3 text-xs font-bold rounded-lg transition border flex items-center justify-center space-x-1.5 ${
                             slot.is_override_open === true
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
@@ -328,14 +356,23 @@ export const ProgrammeSchedule: React.FC<Props> = ({ currentStaff }) => {
                           }`}
                           title="Click to cycle: Auto (Window) -> Force Open -> Force Closed"
                         >
-                          <span>Override Status: </span>
-                          <span className="underline">
-                            {slot.is_override_open === true
-                              ? 'FORCE OPEN'
-                              : slot.is_override_open === false
-                              ? 'FORCE CLOSED'
-                              : 'AUTO (WINDOW)'}
-                          </span>
+                          {updatingSlotId === slot.id ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Saving to Database...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Override: </span>
+                              <span className="underline">
+                                {slot.is_override_open === true
+                                  ? 'FORCE OPEN'
+                                  : slot.is_override_open === false
+                                  ? 'FORCE CLOSED'
+                                  : 'AUTO (WINDOW)'}
+                              </span>
+                            </>
+                          )}
                         </button>
                       )}
                     </div>

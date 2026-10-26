@@ -166,7 +166,7 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
             <option value="all">All Sessions</option>
             <option value="morning">Morning (10:00 AM)</option>
             <option value="afternoon">Afternoon (3:00 PM)</option>
-            <option value="evening">Evening (8:00 PM)</option>
+            <option value="evening">Evening (7:00 PM)</option>
           </select>
         </div>
 

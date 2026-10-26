@@ -27,7 +27,7 @@ import { supabase, isSupabaseConfigured } from './supabase';
 // Helper to generate IDs
 const uid = () => 'id-' + Math.random().toString(36).substring(2, 9) + '-' + Date.now().toString(36);
 
-const STORAGE_KEY = 'llo_tracking_data_v2';
+const STORAGE_KEY = 'llo_tracking_data_v3';
 
 interface StoreState {
   programmes: Programme[];
@@ -81,7 +81,7 @@ function initializeDefaultData(): StoreState {
       created_at: new Date().toISOString(),
     });
 
-    // 3 slots per day: Morning (10:00 AM), Afternoon (3:00 PM), Evening (8:00 PM)
+    // 3 slots per day: Morning (10:00 AM), Afternoon (3:00 PM), Evening (7:00 PM)
     const morningSlotId = `slot-${dayId}-morning`;
     const afternoonSlotId = `slot-${dayId}-afternoon`;
     const eveningSlotId = `slot-${dayId}-evening`;
@@ -113,17 +113,17 @@ function initializeDefaultData(): StoreState {
         id: eveningSlotId,
         programme_day_id: dayId,
         session_code: 'evening',
-        name: 'Evening Session (8:00 PM)',
-        scheduled_time: '20:00:00',
-        window_open_offset_minutes: 0, // Opens at 08:00 PM
-        window_close_offset_minutes: 120, // 08:00 PM - 10:00 PM
+        name: 'Evening Session (7:00 PM)',
+        scheduled_time: '19:00:00',
+        window_open_offset_minutes: 0, // Opens at 07:00 PM
+        window_close_offset_minutes: 120, // 07:00 PM - 09:00 PM
         is_override_open: null, // strictly follows time window
         created_at: new Date().toISOString(),
       }
     );
   }
 
-  // Seed Volunteers: Clean list with IDs and Names
+  // Seed Volunteers: Clean list with IDs and Names (overridden by Supabase on live sync)
   const volunteers: Volunteer[] = [
     {
       id: 'vol-1',
@@ -310,41 +310,71 @@ class Store {
     this.isSyncing = true;
     try {
       if (typeof window !== 'undefined') {
-        const res = await fetch('/api/admin-data', {
-          headers: { Accept: 'application/json' },
-        });
-        if (res.ok) {
-          const json = await res.json();
-          if (json.live && json.data) {
-            const live = json.data;
-            if (live.programmes && live.programmes.length > 0) {
-              this.state.programmes = live.programmes;
-            }
-            if (live.programme_days && live.programme_days.length > 0) {
-              this.state.programme_days = live.programme_days;
-            }
-            if (live.session_slots && live.session_slots.length > 0) {
-              this.state.session_slots = live.session_slots;
-            }
-            if (Array.isArray(live.volunteers)) {
-              this.state.volunteers = live.volunteers;
-            }
-            if (Array.isArray(live.task_submissions)) {
-              this.state.task_submissions = live.task_submissions;
-            }
-            if (Array.isArray(live.staff_profiles) && live.staff_profiles.length > 0) {
-              this.state.staff_profiles = live.staff_profiles;
-            }
-            if (Array.isArray(live.audit_logs)) {
-              this.state.audit_logs = live.audit_logs;
-            }
+        let loaded = false;
 
-            this.isLive = true;
-            this.lastSyncTime = new Date();
-            this.save();
-            this.notifyListeners();
-            return true;
+        // 1. Try serverless API endpoint first
+        try {
+          const res = await fetch('/api/admin-data', {
+            headers: { Accept: 'application/json' },
+          });
+          if (res.ok) {
+            const json = await res.json();
+            if (json.live && json.data) {
+              const live = json.data;
+              if (live.programmes && live.programmes.length > 0) this.state.programmes = live.programmes;
+              if (live.programme_days && live.programme_days.length > 0) this.state.programme_days = live.programme_days;
+              if (live.session_slots && live.session_slots.length > 0) this.state.session_slots = live.session_slots;
+              if (Array.isArray(live.volunteers) && live.volunteers.length > 0) this.state.volunteers = live.volunteers;
+              if (Array.isArray(live.task_submissions)) this.state.task_submissions = live.task_submissions;
+              if (Array.isArray(live.staff_profiles) && live.staff_profiles.length > 0) this.state.staff_profiles = live.staff_profiles;
+              if (Array.isArray(live.audit_logs)) this.state.audit_logs = live.audit_logs;
+              loaded = true;
+            }
           }
+        } catch {
+          // Continue to direct Supabase client fallback below
+        }
+
+        // 2. Fall back to direct Supabase client if configured
+        if (!loaded && isSupabaseConfigured && supabase) {
+          try {
+            const [
+              { data: progs },
+              { data: days },
+              { data: slots },
+              { data: vols },
+              { data: subs },
+              { data: staff },
+              { data: logs },
+            ] = await Promise.all([
+              supabase.from('programmes').select('*').order('created_at', { ascending: false }),
+              supabase.from('programme_days').select('*').order('day_number', { ascending: true }),
+              supabase.from('session_slots').select('*').order('scheduled_time', { ascending: true }),
+              supabase.from('volunteers').select('*').order('volunteer_id', { ascending: true }),
+              supabase.from('task_submissions').select('*').order('submitted_at', { ascending: false }),
+              supabase.from('staff_profiles').select('*').order('created_at', { ascending: true }),
+              supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200),
+            ]);
+
+            if (progs && progs.length > 0) this.state.programmes = progs;
+            if (days && days.length > 0) this.state.programme_days = days;
+            if (slots && slots.length > 0) this.state.session_slots = slots;
+            if (vols && vols.length > 0) this.state.volunteers = vols;
+            if (subs) this.state.task_submissions = subs;
+            if (staff && staff.length > 0) this.state.staff_profiles = staff;
+            if (logs) this.state.audit_logs = logs;
+            loaded = true;
+          } catch (directErr) {
+            console.warn('Direct Supabase fetch fallback warning:', directErr);
+          }
+        }
+
+        if (loaded) {
+          this.isLive = true;
+          this.lastSyncTime = new Date();
+          this.save();
+          this.notifyListeners();
+          return true;
         }
       }
     } catch (err) {
@@ -391,23 +421,57 @@ class Store {
 
   private async dispatchAction(action: string, payload: any): Promise<void> {
     if (typeof window === 'undefined') return;
+    let saved = false;
     try {
-      await fetch('/api/admin-action', {
+      const res = await fetch('/api/admin-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, payload }),
       });
-      // Trigger a sync shortly after dispatching to ensure full consistency
-      setTimeout(() => this.syncWithLiveDatabase(), 300);
+      if (res.ok) {
+        saved = true;
+        // Trigger a sync shortly after dispatching to ensure full consistency
+        setTimeout(() => this.syncWithLiveDatabase(), 300);
+      }
     } catch (err) {
       console.warn(`Failed to dispatch ${action} to server:`, err);
     }
-  }
 
+    // Direct Supabase client fallback if serverless endpoint was unreachable
+    if (!saved && isSupabaseConfigured && supabase) {
+      try {
+        if (action === 'set_active_day') {
+          await supabase.from('programmes').update({
+            active_day_number: payload.day_number,
+            updated_at: new Date().toISOString(),
+          }).eq('id', payload.programme_id);
+        } else if (action === 'set_slot_override') {
+          await supabase.from('session_slots').update({
+            is_override_open: payload.override,
+          }).eq('id', payload.slot_id);
+        } else if (action === 'add_volunteer') {
+          await supabase.from('volunteers').insert({
+            volunteer_id: payload.volunteer_id,
+            full_name: payload.full_name,
+            email: payload.email || null,
+            phone: payload.phone || null,
+            is_active: payload.is_active ?? true,
+            notes: payload.notes || null,
+          });
+        }
+      } catch (directErr) {
+        console.warn(`Direct Supabase fallback for ${action} error:`, directErr);
+      }
+    }
+  }
 
   private load(): StoreState {
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
+        // Clean out legacy caches from old releases
+        window.localStorage.removeItem('llo_tracking_data_v1');
+        window.localStorage.removeItem('llo_tracking_data_v2');
+
         const saved = window.localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
@@ -435,10 +499,15 @@ class Store {
             }
           }
 
-          // Purge legacy demo submissions so live tracking starts completely clean
+          // Purge legacy demo submissions and mock volunteers so live tracking starts completely clean
           if (parsed && Array.isArray(parsed.task_submissions)) {
             parsed.task_submissions = parsed.task_submissions.filter(
               (sub: any) => !sub.id.startsWith('sub-init-')
+            );
+          }
+          if (parsed && Array.isArray(parsed.volunteers)) {
+            parsed.volunteers = parsed.volunteers.filter(
+              (v: any) => !v.id?.startsWith('vol-')
             );
           }
           return parsed;
@@ -897,13 +966,16 @@ class Store {
     return list;
   }
 
-  public addVolunteer(vol: Omit<Volunteer, 'id' | 'created_at' | 'updated_at'>, staffUser: StaffProfile): { success: boolean; message: string; volunteer?: Volunteer } {
+  public async addVolunteer(
+    vol: Omit<Volunteer, 'id' | 'created_at' | 'updated_at'>,
+    staffUser: StaffProfile
+  ): Promise<{ success: boolean; message: string; volunteer?: Volunteer }> {
     const normalizedId = normalizeVolunteerId(vol.volunteer_id);
     if (this.state.volunteers.some(v => normalizeVolunteerId(v.volunteer_id) === normalizedId)) {
       return { success: false, message: `Volunteer ID "${normalizedId}" already exists.` };
     }
 
-    const newVol: Volunteer = {
+    let createdRecord: Volunteer = {
       ...vol,
       id: uid(),
       volunteer_id: normalizedId,
@@ -911,19 +983,82 @@ class Store {
       updated_at: new Date().toISOString(),
     };
 
-    this.state.volunteers.unshift(newVol);
-    this.addAuditLog(staffUser, 'VOLUNTEER_ADD', 'volunteer', newVol.id, {
-      volunteer_id: newVol.volunteer_id,
-      name: newVol.full_name,
+    let savedToLiveDb = false;
+
+    if (typeof window !== 'undefined') {
+      // 1. Try serverless API first
+      try {
+        const res = await fetch('/api/admin-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'add_volunteer', payload: { ...vol, volunteer_id: normalizedId } }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            createdRecord = json.data;
+            savedToLiveDb = true;
+          } else if (json.message) {
+            return { success: false, message: json.message };
+          }
+        }
+      } catch (err) {
+        console.warn('Could not reach /api/admin-action:', err);
+      }
+
+      // 2. Direct Supabase client fallback
+      if (!savedToLiveDb && isSupabaseConfigured && supabase) {
+        try {
+          const { data: dbData, error: dbErr } = await supabase
+            .from('volunteers')
+            .insert({
+              volunteer_id: normalizedId,
+              full_name: vol.full_name,
+              email: vol.email || null,
+              phone: vol.phone || null,
+              is_active: vol.is_active ?? true,
+              notes: vol.notes || null,
+            })
+            .select()
+            .single();
+
+          if (!dbErr && dbData) {
+            createdRecord = dbData;
+            savedToLiveDb = true;
+          }
+        } catch (dbErr) {
+          console.warn('Direct Supabase insert fallback error:', dbErr);
+        }
+      }
+    }
+
+    this.state.volunteers = this.state.volunteers.filter(
+      v => v.id !== createdRecord.id && normalizeVolunteerId(v.volunteer_id) !== normalizedId
+    );
+    this.state.volunteers.unshift(createdRecord);
+
+    this.addAuditLog(staffUser, 'VOLUNTEER_ADD', 'volunteer', createdRecord.id, {
+      volunteer_id: createdRecord.volunteer_id,
+      name: createdRecord.full_name,
+      saved_to_live_db: savedToLiveDb,
     });
     this.save();
-    this.dispatchAction('add_volunteer', newVol);
     this.notifyListeners();
 
-    return { success: true, message: 'Volunteer added successfully.', volunteer: newVol };
+    return {
+      success: true,
+      message: savedToLiveDb
+        ? 'Volunteer added and saved to database successfully.'
+        : 'Volunteer added to roster successfully.',
+      volunteer: createdRecord,
+    };
   }
 
-  public updateVolunteer(id: string, updates: Partial<Volunteer>, staffUser: StaffProfile): { success: boolean; message: string } {
+  public async updateVolunteer(
+    id: string,
+    updates: Partial<Volunteer>,
+    staffUser: StaffProfile
+  ): Promise<{ success: boolean; message: string }> {
     const vol = this.state.volunteers.find(v => v.id === id);
     if (!vol) return { success: false, message: 'Volunteer not found.' };
 
@@ -934,22 +1069,37 @@ class Store {
       vol.volunteer_id = normalizeVolunteerId(updates.volunteer_id);
     }
 
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch('/api/admin-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'update_volunteer', payload: { id, updates } }),
+        });
+      } catch (err) {
+        if (isSupabaseConfigured && supabase) {
+          try {
+            await supabase.from('volunteers').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id);
+          } catch {}
+        }
+      }
+    }
+
     this.addAuditLog(staffUser, 'VOLUNTEER_UPDATE', 'volunteer', id, {
       volunteer_id: vol.volunteer_id,
       status_changed: oldActive !== vol.is_active ? `active: ${oldActive} -> ${vol.is_active}` : undefined,
       updates,
     });
     this.save();
-    this.dispatchAction('update_volunteer', { id, updates });
     this.notifyListeners();
 
     return { success: true, message: 'Volunteer updated successfully.' };
   }
 
-  public importVolunteers(
+  public async importVolunteers(
     rows: Array<Omit<Volunteer, 'id' | 'created_at' | 'updated_at'>>,
     staffUser: StaffProfile
-  ): { success: boolean; importedCount: number; duplicateCount: number; message: string } {
+  ): Promise<{ success: boolean; importedCount: number; duplicateCount: number; message: string }> {
     const existingIds = new Set(this.state.volunteers.map(v => normalizeVolunteerId(v.volunteer_id)));
     let imported = 0;
     let duplicates = 0;
@@ -981,8 +1131,23 @@ class Store {
     });
 
     this.save();
-    if (newItems.length > 0) {
-      this.dispatchAction('import_volunteers', { volunteers: newItems });
+    if (newItems.length > 0 && typeof window !== 'undefined') {
+      try {
+        const res = await fetch('/api/admin-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'import_volunteers', payload: { volunteers: newItems } }),
+        });
+        if (res.ok) {
+          setTimeout(() => this.syncWithLiveDatabase(), 300);
+        }
+      } catch (err) {
+        if (isSupabaseConfigured && supabase) {
+          try {
+            await supabase.from('volunteers').upsert(newItems, { onConflict: 'volunteer_id' });
+          } catch {}
+        }
+      }
     }
     this.notifyListeners();
     return {
@@ -1034,19 +1199,30 @@ class Store {
       .sort((a, b) => a.day_number - b.day_number);
   }
 
-  public setActiveProgrammeDay(dayNumber: number, staffUser?: StaffProfile, openDaySlots = true): { success: boolean; message: string; active_day_number: number } {
+  public setActiveProgrammeDay(
+    dayNumber: number,
+    staffUser?: StaffProfile,
+    openDaySlots = false
+  ): { success: boolean; message: string; active_day_number: number } {
     const activeProg = this.state.programmes.find(p => p.status === 'active') || this.state.programmes[0];
     const targetDay = this.state.programme_days.find(
       d => d.programme_id === activeProg.id && d.day_number === dayNumber
     );
 
     if (!targetDay) {
-      return { success: false, message: `Programme Day ${dayNumber} does not exist.`, active_day_number: activeProg.active_day_number || 1 };
+      return {
+        success: false,
+        message: `Programme Day ${dayNumber} does not exist.`,
+        active_day_number: activeProg.active_day_number || 1,
+      };
     }
 
     activeProg.active_day_number = dayNumber;
     activeProg.updated_at = new Date().toISOString();
-    targetDay.is_active = true;
+
+    for (const d of this.state.programme_days) {
+      d.is_active = d.day_number === dayNumber;
+    }
 
     if (openDaySlots) {
       const slots = this.state.session_slots.filter(s => s.programme_day_id === targetDay.id);
@@ -1091,18 +1267,26 @@ class Store {
     });
   }
 
-  public setSlotOverride(slotId: string, override: boolean | null, staffUser: StaffProfile) {
+  public setSlotOverride(
+    slotId: string,
+    override: boolean | null,
+    staffUser: StaffProfile
+  ): { success: boolean; message: string } {
     const slot = this.state.session_slots.find(s => s.id === slotId);
     if (!slot) return { success: false, message: 'Slot not found' };
 
     slot.is_override_open = override;
+
     this.addAuditLog(staffUser, 'SESSION_OVERRIDE', 'session_slot', slotId, {
       override_state: override === null ? 'AUTO (WINDOW)' : override ? 'FORCE_OPEN' : 'FORCE_CLOSED',
     });
     this.save();
     this.dispatchAction('set_slot_override', { slot_id: slotId, override });
     this.notifyListeners();
-    return { success: true, message: `Session slot override set to ${override}` };
+    return {
+      success: true,
+      message: `Session slot override set to ${override === null ? 'AUTO (WINDOW)' : override ? 'FORCE OPEN' : 'FORCE CLOSED'}`,
+    };
   }
 
   // =========================================================================
