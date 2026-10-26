@@ -7,11 +7,17 @@ import {
   Eye,
   AlertTriangle,
   X,
+  FileText,
 } from 'lucide-react';
 import { StaffProfile, Volunteer } from '../../types';
 import { dataStore } from '../../lib/data-store';
 import { generateNextVolunteerId, normalizeVolunteerId, isValidVolunteerIdFormat, RolePermissions } from '../../lib/validation';
-import { generateVolunteersCsv, parseVolunteersCsv, triggerCsvDownload } from '../../lib/csv';
+import {
+  generateVolunteersCsv,
+  parseVolunteersCsv,
+  triggerCsvDownload,
+  generateVolunteerTemplateCsv,
+} from '../../lib/csv';
 import { VolunteerDetailModal } from './VolunteerDetailModal';
 
 interface Props {
@@ -105,6 +111,11 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
     });
     const content = generateVolunteersCsv(volunteers);
     triggerCsvDownload(content, `llo-volunteers-${Date.now()}.csv`);
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateContent = generateVolunteerTemplateCsv();
+    triggerCsvDownload(templateContent, 'llo_volunteer_import_template.csv');
   };
 
   const handleCsvFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -203,6 +214,15 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
               </button>
             </>
           )}
+
+          <button
+            onClick={handleDownloadTemplate}
+            className="flex items-center space-x-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition"
+            title="Download blank CSV template with sample volunteer IDs and format"
+          >
+            <FileText className="w-3.5 h-3.5 text-linkedin" />
+            <span>Download Template</span>
+          </button>
 
           <button
             onClick={handleExportCsv}
@@ -503,7 +523,22 @@ export const Volunteers: React.FC<Props> = ({ currentStaff }) => {
               </div>
             )}
 
-            <div className="space-y-3 text-xs text-slate-600">
+            <div className="space-y-3.5 text-xs text-slate-600">
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div>
+                  <span className="font-bold text-slate-900 block text-xs">Need the CSV import format?</span>
+                  <span className="text-[11px] text-slate-600">Download our pre-formatted template with sample volunteer IDs and names.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 bg-linkedin hover:bg-linkedin-dark text-white font-bold text-xs rounded-lg shadow-xs transition flex-shrink-0"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Template</span>
+                </button>
+              </div>
+
               <p>
                 Upload a CSV file containing volunteer rosters. Supported headers:
                 <code className="text-linkedin font-mono ml-1">volunteer_id, full_name, email, phone, notes</code>

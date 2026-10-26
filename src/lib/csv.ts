@@ -195,6 +195,25 @@ export function generateVolunteersCsv(volunteers: Volunteer[]): string {
 }
 
 /**
+ * Generates a clean, ready-to-use CSV template for importing volunteers
+ */
+export function generateVolunteerTemplateCsv(): string {
+  const headers = ['volunteer_id', 'full_name', 'email', 'phone', 'notes'];
+  const sampleRows = [
+    ['LLO-VOL-001', 'Chinedu Okeke', 'chinedu.okeke@example.com', '+2348031234567', 'Coordinator'],
+    ['LLO-VOL-002', 'Amina Yusuf', 'amina.yusuf@example.com', '+2348052345678', 'Volunteer'],
+    ['LLO-VOL-003', 'Ngozi Eze', 'ngozi.eze@example.com', '+2348093456789', 'Volunteer'],
+    ['LLO-VOL-004', 'Emeka Nwosu', 'emeka.nwosu@example.com', '+2348144567890', 'Volunteer'],
+    ['LLO-VOL-005', 'Fatima Bello', 'fatima.bello@example.com', '+2348185678901', 'Volunteer'],
+  ];
+
+  const headerRow = headers.map(h => sanitizeCsvCell(h)).join(',');
+  const rowLines = sampleRows.map(row => row.map(c => sanitizeCsvCell(c)).join(','));
+
+  return [headerRow, ...rowLines].join('\r\n');
+}
+
+/**
  * Browser helper to trigger CSV file download
  */
 export function triggerCsvDownload(csvContent: string, filename: string): void {

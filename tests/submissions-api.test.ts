@@ -6,6 +6,9 @@ import { checkRateLimit } from '../api/utils/rate-limiter';
 describe('Secure Submission Backend & Business Rules', () => {
   beforeEach(() => {
     dataStore.resetToDefault();
+    const staff = dataStore.getStaff()[0];
+    const morningSlot = dataStore.getDaySessionSlots('day-prog-llo-2026-1')[0];
+    dataStore.setSlotOverride(morningSlot.id, true, staff);
   });
 
   it('records valid session check-in and resolves volunteer name from ID', async () => {

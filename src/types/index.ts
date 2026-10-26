@@ -109,6 +109,14 @@ export interface AuditLog {
   created_at: string;
 }
 
+export interface NextSessionInfo {
+  name: string;
+  session_code: SessionCode;
+  scheduled_time: string;
+  window_range: string;
+  opens_at_label: string;
+}
+
 export interface PublicScheduleData {
   programme: {
     id: string;
@@ -131,6 +139,8 @@ export interface PublicScheduleData {
   slots: Array<SessionSlot & {
     checkins_count?: number;
   }>;
+  active_slot: (SessionSlot & { checkins_count?: number }) | null;
+  next_session: NextSessionInfo | null;
   available_days?: Array<{
     id: string;
     day_number: number;

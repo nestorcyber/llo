@@ -3,6 +3,8 @@
  * Lagos is strictly UTC+1 (West Africa Time - WAT) with zero daylight savings adjustments.
  */
 
+import { NextSessionInfo, SessionCode } from '../types';
+
 export const LAGOS_TIMEZONE = 'Africa/Lagos';
 export const LAGOS_OFFSET_HOURS = 1; // UTC+1
 
@@ -205,4 +207,72 @@ export function formatSessionWindowRange(
   const endStr = new Intl.DateTimeFormat('en-US', formatOptions).format(windowEndUtc);
 
   return `${startStr} – ${endStr} WAT`;
+}
+
+/**
+ * Determines the next upcoming session and human-readable opening label
+ */
+export function getNextSessionInfo(
+  calendarDateStr: string,
+  slots: Array<{
+    name: string;
+    session_code: SessionCode;
+    scheduled_time: string;
+    window_open_offset_minutes: number;
+    window_close_offset_minutes: number;
+  }>,
+  currentTime: Date = new Date()
+): NextSessionInfo {
+  // Sort slots by scheduled time
+  const sorted = [...slots].sort((a, b) => a.scheduled_time.localeCompare(b.scheduled_time));
+  const nowMs = currentTime.getTime();
+
+  for (const slot of sorted) {
+    const { windowStartUtc } = calculateSessionWindow(
+      calendarDateStr,
+      slot.scheduled_time,
+      slot.window_open_offset_minutes,
+      slot.window_close_offset_minutes
+    );
+
+    if (nowMs < windowStartUtc.getTime()) {
+      const windowRange = formatSessionWindowRange(
+        slot.scheduled_time,
+        slot.window_open_offset_minutes,
+        slot.window_close_offset_minutes
+      );
+      const openTimeFormatted = format12HourTime(slot.scheduled_time);
+      return {
+        name: slot.name,
+        session_code: slot.session_code,
+        scheduled_time: slot.scheduled_time,
+        window_range: windowRange,
+        opens_at_label: `Today at ${openTimeFormatted} WAT (${windowRange})`,
+      };
+    }
+  }
+
+  // If all sessions for today have elapsed, next is tomorrow's first session (Morning)
+  const firstSlot = sorted[0] || {
+    name: 'Morning Session (10:00 AM)',
+    session_code: 'morning' as SessionCode,
+    scheduled_time: '10:00:00',
+    window_open_offset_minutes: 0,
+    window_close_offset_minutes: 120,
+  };
+
+  const windowRange = formatSessionWindowRange(
+    firstSlot.scheduled_time,
+    firstSlot.window_open_offset_minutes,
+    firstSlot.window_close_offset_minutes
+  );
+  const openTimeFormatted = format12HourTime(firstSlot.scheduled_time);
+
+  return {
+    name: firstSlot.name,
+    session_code: firstSlot.session_code,
+    scheduled_time: firstSlot.scheduled_time,
+    window_range: windowRange,
+    opens_at_label: `Tomorrow at ${openTimeFormatted} WAT (${windowRange})`,
+  };
 }

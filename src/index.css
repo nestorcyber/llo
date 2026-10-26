@@ -13,6 +13,11 @@
     min-height: 100vh;
   }
 
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
   /* Accessible focus states */
   :focus-visible {
     @apply outline-none ring-2 ring-linkedin ring-offset-2;

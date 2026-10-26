@@ -1,6 +1,12 @@
 import { dataStore } from '../src/lib/data-store';
 import { supabaseServer, isServerSupabaseConfigured } from './utils/supabase-server';
-import { getLagosDateString, formatLagosDateTime, isSessionWindowOpen, getSessionWindowStatus } from '../src/lib/lagos-time';
+import {
+  getLagosDateString,
+  formatLagosDateTime,
+  isSessionWindowOpen,
+  getSessionWindowStatus,
+  getNextSessionInfo,
+} from '../src/lib/lagos-time';
 
 export async function handlePublicSchedule(req: any, res: any) {
   if (req.method !== 'GET') {
@@ -33,12 +39,16 @@ export async function handlePublicSchedule(req: any, res: any) {
         .eq('programme_id', prog.id)
         .order('day_number', { ascending: true });
 
+      // Match today's Lagos date automatically, unless specific day requested or configured
       let currentDay = requestedDay ? days?.find(d => d.day_number === requestedDay) : undefined;
+      if (!currentDay) {
+        currentDay = days?.find(d => d.calendar_date === todayLagos);
+      }
       if (!currentDay && prog.active_day_number) {
         currentDay = days?.find(d => d.day_number === prog.active_day_number);
       }
       if (!currentDay) {
-        currentDay = days?.find(d => d.calendar_date === todayLagos) || days?.[0];
+        currentDay = days?.[0];
       }
 
       if (!currentDay) {
@@ -47,26 +57,33 @@ export async function handlePublicSchedule(req: any, res: any) {
 
       const { data: slots } = await supabaseServer
         .from('session_slots')
-        .select(`
-          *,
-          session_tasks (*)
-        `)
+        .select('*')
         .eq('programme_day_id', currentDay.id);
 
-      const enrichedSlots = (slots || []).map(slot => {
-        const isOpen = isSessionWindowOpen(slot, currentDay.calendar_date);
-        const windowStatus = getSessionWindowStatus(slot, currentDay.calendar_date);
-        const tasks = (slot.session_tasks || []).filter((t: any) => t.status === 'open');
+      const now = new Date();
+      let openSlotFound: any = null;
 
-        return {
+      const enrichedSlots = (slots || []).map(slot => {
+        const isWindowOpen = isSessionWindowOpen(slot, currentDay.calendar_date, now);
+        // Strictly enforce only one session active at a time
+        const isSlotActive = isWindowOpen && !openSlotFound;
+        const windowStatus = isSlotActive ? 'open' : getSessionWindowStatus(slot, currentDay.calendar_date, now);
+
+        const enriched = {
           ...slot,
-          is_open: isOpen,
+          is_open: isSlotActive,
           window_status: windowStatus,
-          tasks,
         };
+
+        if (isSlotActive) {
+          openSlotFound = enriched;
+        }
+
+        return enriched;
       });
 
-      const now = new Date();
+      const nextSession = getNextSessionInfo(currentDay.calendar_date, slots || [], now);
+
       return res.status(200).json({
         programme: {
           id: prog.id,
@@ -75,7 +92,7 @@ export async function handlePublicSchedule(req: any, res: any) {
           duration_days: prog.duration_days,
           timezone: prog.timezone,
           status: prog.status,
-          active_day_number: prog.active_day_number || 1,
+          active_day_number: currentDay.day_number,
         },
         current_day: {
           id: currentDay.id,
@@ -87,6 +104,8 @@ export async function handlePublicSchedule(req: any, res: any) {
         server_time: now.toISOString(),
         server_lagos_time: formatLagosDateTime(now),
         slots: enrichedSlots,
+        active_slot: openSlotFound,
+        next_session: nextSession,
         available_days: (days || []).map(d => ({
           id: d.id,
           day_number: d.day_number,

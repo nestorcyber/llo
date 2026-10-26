@@ -17,6 +17,7 @@ import {
   isSessionWindowOpen,
   getSessionWindowStatus,
   formatSessionWindowRange,
+  getNextSessionInfo,
 } from './lagos-time';
 import { normalizeVolunteerId } from './validation';
 
@@ -49,7 +50,7 @@ function initializeDefaultData(): StoreState {
       duration_days: 30,
       timezone: 'Africa/Lagos',
       status: 'active',
-      active_day_number: 1,
+      active_day_number: null, // null = follows real-time today calendar date automatically
       created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
       updated_at: new Date().toISOString(),
     },
@@ -89,9 +90,9 @@ function initializeDefaultData(): StoreState {
         session_code: 'morning',
         name: 'Morning Session (10:00 AM)',
         scheduled_time: '10:00:00',
-        window_open_offset_minutes: 30, // 09:30 AM
-        window_close_offset_minutes: 120, // 12:00 PM
-        is_override_open: d === 1 ? true : null, // Day 1 morning open for test check-in
+        window_open_offset_minutes: 0, // Opens at 10:00 AM
+        window_close_offset_minutes: 120, // 10:00 AM - 12:00 PM
+        is_override_open: null, // strictly follows time window
         created_at: new Date().toISOString(),
       },
       {
@@ -100,9 +101,9 @@ function initializeDefaultData(): StoreState {
         session_code: 'afternoon',
         name: 'Afternoon Session (3:00 PM)',
         scheduled_time: '15:00:00',
-        window_open_offset_minutes: 30, // 02:30 PM
-        window_close_offset_minutes: 120, // 05:00 PM
-        is_override_open: d === 1 ? true : null, // Day 1 afternoon open for test check-in
+        window_open_offset_minutes: 0, // Opens at 03:00 PM
+        window_close_offset_minutes: 120, // 03:00 PM - 05:00 PM
+        is_override_open: null, // strictly follows time window
         created_at: new Date().toISOString(),
       },
       {
@@ -111,9 +112,9 @@ function initializeDefaultData(): StoreState {
         session_code: 'evening',
         name: 'Evening Session (8:00 PM)',
         scheduled_time: '20:00:00',
-        window_open_offset_minutes: 30, // 07:30 PM
-        window_close_offset_minutes: 120, // 10:00 PM
-        is_override_open: d === 1 ? true : null, // Day 1 evening open for test check-in
+        window_open_offset_minutes: 0, // Opens at 08:00 PM
+        window_close_offset_minutes: 120, // 08:00 PM - 10:00 PM
+        is_override_open: null, // strictly follows time window
         created_at: new Date().toISOString(),
       }
     );
@@ -366,24 +367,28 @@ class Store {
 
     let currentDay: ProgrammeDay | undefined;
 
+    // 1. Explicit requested day (e.g. administrator viewing schedule)
     if (requestedDayNumber) {
       currentDay = this.state.programme_days.find(
         d => d.programme_id === activeProg.id && d.day_number === requestedDayNumber
       );
     }
 
+    // 2. Explicitly configured active_day_number (set by administrator override)
     if (!currentDay && activeProg.active_day_number) {
       currentDay = this.state.programme_days.find(
         d => d.programme_id === activeProg.id && d.day_number === activeProg.active_day_number
       );
     }
 
+    // 3. Automatically match today's real date in Africa/Lagos (WAT)
     if (!currentDay) {
       currentDay = this.state.programme_days.find(
         d => d.programme_id === activeProg.id && d.calendar_date === todayLagos
       );
     }
 
+    // 4. Default to Day 1
     if (!currentDay) {
       currentDay = this.state.programme_days.find(
         d => d.programme_id === activeProg.id && d.day_number === 1
@@ -391,23 +396,36 @@ class Store {
     }
 
     const daySlots = this.state.session_slots.filter(s => s.programme_day_id === currentDay!.id);
+    const now = new Date();
+
+    // Strictly enforce: ONLY ONE session can be active at a time
+    let openSlotFound: (SessionSlot & { checkins_count?: number }) | null = null;
 
     const enrichedSlots = daySlots.map(slot => {
-      const isOpen = isSessionWindowOpen(slot, currentDay!.calendar_date);
-      const windowStatus = getSessionWindowStatus(slot, currentDay!.calendar_date);
+      const isWindowOpen = isSessionWindowOpen(slot, currentDay!.calendar_date, now);
+      // If a slot is open and no active slot has been claimed yet, designate this as the active session
+      const isSlotActive = isWindowOpen && !openSlotFound;
+      const windowStatus = isSlotActive ? 'open' : getSessionWindowStatus(slot, currentDay!.calendar_date, now);
       const checkinCount = this.state.task_submissions.filter(
         sub => sub.session_slot_id === slot.id && sub.status !== 'voided'
       ).length;
 
-      return {
+      const enriched = {
         ...slot,
-        is_open: isOpen,
+        is_open: isSlotActive,
         window_status: windowStatus,
         checkins_count: checkinCount,
       };
+
+      if (isSlotActive) {
+        openSlotFound = enriched;
+      }
+
+      return enriched;
     });
 
-    const now = new Date();
+    const nextSession = getNextSessionInfo(currentDay!.calendar_date, daySlots, now);
+
     const availableDays = this.state.programme_days
       .filter(d => d.programme_id === activeProg.id)
       .map(d => ({
@@ -425,18 +443,20 @@ class Store {
         duration_days: activeProg.duration_days,
         timezone: activeProg.timezone,
         status: activeProg.status,
-        active_day_number: activeProg.active_day_number || 1,
+        active_day_number: currentDay!.day_number,
       },
       current_day: {
-        id: currentDay.id,
-        day_number: currentDay.day_number,
-        calendar_date: currentDay.calendar_date,
-        theme: currentDay.theme,
-        is_active: currentDay.is_active,
+        id: currentDay!.id,
+        day_number: currentDay!.day_number,
+        calendar_date: currentDay!.calendar_date,
+        theme: currentDay!.theme,
+        is_active: currentDay!.is_active,
       },
       server_time: now.toISOString(),
       server_lagos_time: formatLagosDateTime(now),
       slots: enrichedSlots,
+      active_slot: openSlotFound,
+      next_session: nextSession,
       available_days: availableDays,
     };
   }
@@ -496,7 +516,7 @@ class Store {
       const windowStr = formatSessionWindowRange(slot.scheduled_time, slot.window_open_offset_minutes, slot.window_close_offset_minutes);
       return {
         success: false,
-        message: `Check-in closed: ${slot.name} accepts check-ins during its active window (${windowStr}).`,
+        message: `Check-in is currently closed: ${slot.name} accepts check-ins during its scheduled window (${windowStr}). Please come back when the session opens.`,
         error_code: 'SESSION_CLOSED',
       };
     }
