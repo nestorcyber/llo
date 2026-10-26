@@ -206,7 +206,7 @@ function initializeDefaultData(): StoreState {
     {
       id: 'staff-owner-1',
       email: 'admin@llo.com',
-      full_name: 'Ifeanyi Nwachukwu',
+      full_name: 'Admin LLO',
       role: 'owner',
       is_active: true,
       created_at: new Date(Date.now() - 86400000 * 10).toISOString(),
@@ -215,7 +215,7 @@ function initializeDefaultData(): StoreState {
     {
       id: 'staff-manager-1',
       email: 'manager@llo.com',
-      full_name: 'Adaobi Uchendu',
+      full_name: 'Manager LLO',
       role: 'manager',
       is_active: true,
       created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
@@ -224,7 +224,7 @@ function initializeDefaultData(): StoreState {
     {
       id: 'staff-viewer-1',
       email: 'viewer@llo.com',
-      full_name: 'Tariq Danjuma',
+      full_name: 'Viewer LLO',
       role: 'viewer',
       is_active: true,
       created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
@@ -330,12 +330,27 @@ class Store {
         const saved = window.localStorage.getItem(STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          // Seamlessly migrate staff emails if old ones exist in storage
+          // Seamlessly migrate staff emails and names if old ones exist in storage
           if (parsed && Array.isArray(parsed.staff_profiles)) {
             for (const s of parsed.staff_profiles) {
-              if (s.email === 'owner@llowerri.org') s.email = 'admin@llo.com';
-              if (s.email === 'manager@llowerri.org') s.email = 'manager@llo.com';
-              if (s.email === 'viewer@llowerri.org') s.email = 'viewer@llo.com';
+              if (s.email === 'owner@llowerri.org' || s.email === 'admin@llo.com') {
+                s.email = 'admin@llo.com';
+                if (!s.full_name || s.full_name === 'Ifeanyi Nwachukwu') {
+                  s.full_name = 'Admin LLO';
+                }
+              }
+              if (s.email === 'manager@llowerri.org' || s.email === 'manager@llo.com') {
+                s.email = 'manager@llo.com';
+                if (!s.full_name || s.full_name === 'Adaobi Uchendu') {
+                  s.full_name = 'Manager LLO';
+                }
+              }
+              if (s.email === 'viewer@llowerri.org' || s.email === 'viewer@llo.com') {
+                s.email = 'viewer@llo.com';
+                if (!s.full_name || s.full_name === 'Tariq Danjuma') {
+                  s.full_name = 'Viewer LLO';
+                }
+              }
             }
           }
           return parsed;

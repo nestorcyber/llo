@@ -22,6 +22,19 @@ export const App: React.FC = () => {
     if (saved) {
       try {
         const staff = JSON.parse(saved);
+        if (staff) {
+          if (staff.email === 'admin@llo.com' || staff.email === 'owner@llowerri.org') {
+            staff.email = 'admin@llo.com';
+            staff.full_name = 'Admin LLO';
+          } else if (staff.email === 'manager@llo.com' || staff.email === 'manager@llowerri.org') {
+            staff.email = 'manager@llo.com';
+            staff.full_name = 'Manager LLO';
+          } else if (staff.email === 'viewer@llo.com' || staff.email === 'viewer@llowerri.org') {
+            staff.email = 'viewer@llo.com';
+            staff.full_name = 'Viewer LLO';
+          }
+          localStorage.setItem('llo_admin_session', JSON.stringify(staff));
+        }
         setCurrentStaff(staff);
       } catch (err) {
         console.warn('Failed to parse saved session', err);
