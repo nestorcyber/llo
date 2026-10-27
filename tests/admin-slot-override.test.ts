@@ -6,11 +6,11 @@ describe('Admin Action Slot Override API', () => {
   it('updates session_slot override in Supabase via handleAdminAction', async () => {
     if (!supabaseServer) return;
 
-    // Get active morning slot
+    // Get Day 30 slot to avoid mutating today's active session state
     const { data: slot } = await supabaseServer
       .from('session_slots')
       .select('id, name, is_override_open')
-      .eq('session_code', 'morning')
+      .order('created_at', { ascending: true })
       .limit(1)
       .single();
 
