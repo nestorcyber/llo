@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { PublicScheduleData, SubmissionResult, SessionSlot } from '../types';
 import { fetchPublicSchedule, submitVolunteerTask } from '../lib/api-client';
-import { isValidVolunteerIdFormat, resolveVolunteerInput } from '../lib/validation';
+import { resolveVolunteerInput } from '../lib/validation';
 import { formatLagosDateTime, formatSessionWindowRange } from '../lib/lagos-time';
 import niforixLogo from '../assets/niforix-logo.png';
 import lloLogo from '../assets/llo-logo.png';
@@ -81,17 +81,13 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
     setFormError(null);
     setSubmissionResult(null);
 
-    const resolvedId = resolveVolunteerInput(volunteerId);
-
-    if (!resolvedId) {
-      setFormError('Please enter your assigned Volunteer ID.');
+    const rawInput = volunteerId.trim();
+    if (!rawInput) {
+      setFormError('Please enter your assigned Volunteer ID or registered name.');
       return;
     }
 
-    if (!isValidVolunteerIdFormat(resolvedId)) {
-      setFormError(`Invalid Volunteer ID format: "${resolvedId}". Expected format like LLO-VOL-001.`);
-      return;
-    }
+    const resolvedId = resolveVolunteerInput(rawInput);
 
     if (!selectedSlotId || !selectedSlot) {
       setFormError('Please select an active programme session.');
@@ -109,7 +105,7 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
     setIsSubmitting(true);
     try {
       const result = await submitVolunteerTask({
-        volunteer_id: resolvedId,
+        volunteer_id: resolvedId || rawInput,
         session_slot_id: selectedSlot.id,
       });
 

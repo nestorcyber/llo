@@ -70,12 +70,24 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
   // If Supabase service role is configured (and not running in vitest unit test runner), execute via Supabase
   if (!process.env.VITEST && isServerSupabaseConfigured && supabaseServer) {
     try {
-      // 1. Resolve active volunteer (case-insensitive)
-      const { data: volunteer, error: volErr } = await supabaseServer
+      // 1. Resolve active volunteer (case-insensitive by ID or by name)
+      let { data: volunteer, error: volErr } = await supabaseServer
         .from('volunteers')
         .select('id, volunteer_id, full_name, is_active, pin_hash')
         .ilike('volunteer_id', normalizedId)
         .maybeSingle();
+
+      if (!volunteer) {
+        const rawTrimmed = (body.volunteer_id || '').trim();
+        if (rawTrimmed.length >= 2) {
+          const { data: byName } = await supabaseServer
+            .from('volunteers')
+            .select('id, volunteer_id, full_name, is_active, pin_hash')
+            .ilike('full_name', `%${rawTrimmed}%`)
+            .maybeSingle();
+          if (byName) volunteer = byName;
+        }
+      }
 
       if (volErr || !volunteer) {
         return res.status(404).json({
