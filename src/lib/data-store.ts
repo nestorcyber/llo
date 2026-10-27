@@ -466,8 +466,9 @@ class Store {
       });
       if (res.ok) {
         saved = true;
-        // Trigger a sync shortly after dispatching to ensure full consistency
-        setTimeout(() => this.syncWithLiveDatabase(), 300);
+      } else {
+        const errJson = await res.json().catch(() => null);
+        console.warn(`/api/admin-action ${action} response error:`, errJson || res.statusText);
       }
     } catch (err) {
       console.warn(`Failed to dispatch ${action} to server:`, err);
@@ -477,16 +478,18 @@ class Store {
     if (!saved && isSupabaseConfigured && supabase) {
       try {
         if (action === 'set_active_day') {
-          await supabase.from('programmes').update({
+          const { error } = await supabase.from('programmes').update({
             active_day_number: payload.day_number,
             updated_at: new Date().toISOString(),
           }).eq('id', payload.programme_id);
+          if (!error) saved = true;
         } else if (action === 'set_slot_override') {
-          await supabase.from('session_slots').update({
+          const { error } = await supabase.from('session_slots').update({
             is_override_open: payload.override,
           }).eq('id', payload.slot_id);
+          if (!error) saved = true;
         } else if (action === 'add_volunteer') {
-          await supabase.from('volunteers').insert({
+          const { error } = await supabase.from('volunteers').insert({
             volunteer_id: payload.volunteer_id,
             full_name: payload.full_name,
             email: payload.email || null,
@@ -494,10 +497,15 @@ class Store {
             is_active: payload.is_active ?? true,
             notes: payload.notes || null,
           });
+          if (!error) saved = true;
         }
       } catch (directErr) {
         console.warn(`Direct Supabase fallback for ${action} error:`, directErr);
       }
+    }
+
+    if (saved) {
+      setTimeout(() => this.syncWithLiveDatabase(), 300);
     }
   }
 
@@ -583,6 +591,9 @@ class Store {
     const todayLagos = getLagosDateString();
 
     let currentDay: ProgrammeDay | undefined;
+    const todayDay = this.state.programme_days.find(
+      d => d.programme_id === activeProg.id && d.calendar_date === todayLagos
+    );
 
     // 1. Explicit requested day (e.g. administrator viewing schedule)
     if (requestedDayNumber) {
@@ -591,18 +602,21 @@ class Store {
       );
     }
 
-    // 2. Explicitly configured active_day_number (set by administrator override)
+    // 2. Explicitly configured active_day_number (if set to today or a future override day)
     if (!currentDay && activeProg.active_day_number) {
-      currentDay = this.state.programme_days.find(
+      const overrideDay = this.state.programme_days.find(
         d => d.programme_id === activeProg.id && d.day_number === activeProg.active_day_number
       );
+      if (overrideDay) {
+        if (!todayDay || overrideDay.day_number >= todayDay.day_number) {
+          currentDay = overrideDay;
+        }
+      }
     }
 
     // 3. Automatically match today's real date in Africa/Lagos (WAT)
     if (!currentDay) {
-      currentDay = this.state.programme_days.find(
-        d => d.programme_id === activeProg.id && d.calendar_date === todayLagos
-      );
+      currentDay = todayDay;
     }
 
     // 4. Default to Day 1
@@ -1263,11 +1277,11 @@ class Store {
       .sort((a, b) => a.day_number - b.day_number);
   }
 
-  public setActiveProgrammeDay(
+  public async setActiveProgrammeDay(
     dayNumber: number,
     staffUser?: StaffProfile,
     openDaySlots = false
-  ): { success: boolean; message: string; active_day_number: number } {
+  ): Promise<{ success: boolean; message: string; active_day_number: number }> {
     const activeProg = this.state.programmes.find(p => p.status === 'active') || this.state.programmes[0];
     const targetDay = this.state.programme_days.find(
       d => d.programme_id === activeProg.id && d.day_number === dayNumber
@@ -1302,7 +1316,7 @@ class Store {
     });
 
     this.save();
-    this.dispatchAction('set_active_day', { programme_id: activeProg.id, day_number: dayNumber });
+    await this.dispatchAction('set_active_day', { programme_id: activeProg.id, day_number: dayNumber });
     this.notifyListeners();
     return {
       success: true,
@@ -1337,11 +1351,11 @@ class Store {
     });
   }
 
-  public setSlotOverride(
+  public async setSlotOverride(
     slotId: string,
     override: boolean | null,
     staffUser: StaffProfile
-  ): { success: boolean; message: string } {
+  ): Promise<{ success: boolean; message: string }> {
     const slot = this.state.session_slots.find(s => s.id === slotId);
     if (!slot) return { success: false, message: 'Slot not found' };
 
@@ -1351,7 +1365,7 @@ class Store {
       override_state: override === null ? 'AUTO (WINDOW)' : override ? 'FORCE_OPEN' : 'FORCE_CLOSED',
     });
     this.save();
-    this.dispatchAction('set_slot_override', { slot_id: slotId, override });
+    await this.dispatchAction('set_slot_override', { slot_id: slotId, override });
     this.notifyListeners();
     return {
       success: true,

@@ -39,14 +39,28 @@ export async function handlePublicSchedule(req: any, res: any) {
         .eq('programme_id', prog.id)
         .order('day_number', { ascending: true });
 
-      // Priority: 1. Requested day param -> 2. Admin configured active_day_number -> 3. Today's Lagos calendar date -> 4. Day 1
+      // Priority:
+      // 1. Explicit requested day param (?day=X)
+      // 2. Explicit admin override IF active_day_number is set to today or a future day (not an elapsed past day)
+      // 3. Today's Lagos calendar date (automatic progression: Day 2, Day 3, etc.)
+      // 4. Default to first day
+      const todayDay = days?.find(d => d.calendar_date === todayLagos);
       let currentDay = requestedDay ? days?.find(d => d.day_number === requestedDay) : undefined;
+
       if (!currentDay && prog.active_day_number) {
-        currentDay = days?.find(d => d.day_number === prog.active_day_number);
+        const overrideDay = days?.find(d => d.day_number === prog.active_day_number);
+        if (overrideDay) {
+          // If overrideDay is today or in the future, honor it. If it was left on a past day, advance to today!
+          if (!todayDay || overrideDay.day_number >= todayDay.day_number) {
+            currentDay = overrideDay;
+          }
+        }
       }
+
       if (!currentDay) {
-        currentDay = days?.find(d => d.calendar_date === todayLagos);
+        currentDay = todayDay;
       }
+
       if (!currentDay) {
         currentDay = days?.[0];
       }

@@ -14,7 +14,7 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
         const eqIdx = trimmed.indexOf('=');
         if (eqIdx > 0) {
           const key = trimmed.slice(0, eqIdx).trim();
-          const val = trimmed.slice(eqIdx + 1).trim();
+          const val = trimmed.slice(eqIdx + 1).trim().replace(/^['"]|['"]$/g, '');
           if (!process.env[key]) {
             process.env[key] = val;
           }

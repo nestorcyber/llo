@@ -12,11 +12,11 @@ describe('Admin Active Programme Day Activation for Volunteers', () => {
     expect(schedule.programme.active_day_number).toBe(1);
   });
 
-  it('allows administrator to set any day (e.g. Day 4) as active for volunteer access', () => {
+  it('allows administrator to set any day (e.g. Day 4) as active for volunteer access', async () => {
     const staff = dataStore.getStaff()[0]; // Owner
 
     // Activate Day 4
-    const result = dataStore.setActiveProgrammeDay(4, staff, true);
+    const result = await dataStore.setActiveProgrammeDay(4, staff, true);
     expect(result.success).toBe(true);
     expect(result.active_day_number).toBe(4);
 
@@ -36,11 +36,11 @@ describe('Admin Active Programme Day Activation for Volunteers', () => {
     expect(activeDayLog?.details).toMatchObject({ day_number: 4 });
   });
 
-  it('allows volunteers to check in on the newly activated day', () => {
+  it('allows volunteers to check in on the newly activated day', async () => {
     const staff = dataStore.getStaff()[0];
 
     // Activate Day 8
-    dataStore.setActiveProgrammeDay(8, staff, true);
+    await dataStore.setActiveProgrammeDay(8, staff, true);
 
     const schedule = dataStore.getPublicSchedule();
     expect(schedule.current_day.day_number).toBe(8);
@@ -59,20 +59,20 @@ describe('Admin Active Programme Day Activation for Volunteers', () => {
     expect(subResult.submission?.volunteer_name).toBe('Amina Yusuf');
   });
 
-  it('rejects setting a nonexistent day number', () => {
+  it('rejects setting a nonexistent day number', async () => {
     const staff = dataStore.getStaff()[0];
-    const invalidResult = dataStore.setActiveProgrammeDay(99, staff);
+    const invalidResult = await dataStore.setActiveProgrammeDay(99, staff);
     expect(invalidResult.success).toBe(false);
     expect(invalidResult.message).toContain('does not exist');
   });
 
-  it('preserves scheduled calendar_date when Day 3 is activated and allows check-in when overridden open', () => {
+  it('preserves scheduled calendar_date when Day 3 is activated and allows check-in when overridden open', async () => {
     const staff = dataStore.getStaff()[0];
     const day3 = dataStore.getProgrammeDays().find(d => d.day_number === 3)!;
     const initialCalendarDate = day3.calendar_date;
 
     // Admin sets Day 3 active
-    const res = dataStore.setActiveProgrammeDay(3, staff, false);
+    const res = await dataStore.setActiveProgrammeDay(3, staff, false);
     expect(res.success).toBe(true);
 
     // Verify calendar date is intact (not overwritten)
@@ -82,7 +82,7 @@ describe('Admin Active Programme Day Activation for Volunteers', () => {
 
     // Force open morning session for Day 3
     const morningSlot = schedule.slots.find(s => s.session_code === 'morning')!;
-    dataStore.setSlotOverride(morningSlot.id, true, staff);
+    await dataStore.setSlotOverride(morningSlot.id, true, staff);
 
     const refreshedSchedule = dataStore.getPublicSchedule();
     const refreshedSlot = refreshedSchedule.slots.find(s => s.id === morningSlot.id)!;
