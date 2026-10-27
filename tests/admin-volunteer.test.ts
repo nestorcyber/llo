@@ -52,7 +52,7 @@ describe('Admin Action Volunteer API', () => {
     if (supabaseServer) {
       const { data, error } = await supabaseServer
         .from('volunteers')
-        .select('*')
+        .select('id, volunteer_id, full_name, email, phone, track, is_active, notes')
         .eq('volunteer_id', TEST_VOLUNTEER_ID)
         .single();
 
@@ -60,7 +60,7 @@ describe('Admin Action Volunteer API', () => {
       expect(data).toBeDefined();
       expect(data.full_name).toBe('Admin Added Volunteer');
     }
-  });
+  }, 15000);
 
   it('rejects duplicate volunteer ID with clear error', async () => {
     let responseStatus = 200;
@@ -93,5 +93,5 @@ describe('Admin Action Volunteer API', () => {
     expect(responseStatus).toBe(400);
     expect(responseJson.success).toBe(false);
     expect(responseJson.message).toContain('already exists');
-  });
+  }, 15000);
 });

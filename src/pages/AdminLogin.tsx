@@ -47,7 +47,7 @@ export const AdminLogin: React.FC<Props> = ({ onLoginSuccess, onBackToVolunteerP
             // Fetch staff profile
             const { data: profile } = await supabase
               .from('staff_profiles')
-              .select('*')
+              .select('id, email, full_name, role, is_active, created_at, updated_at')
               .eq('id', authData.user.id)
               .maybeSingle();
 

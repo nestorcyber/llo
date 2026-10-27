@@ -65,4 +65,35 @@ describe('Admin Active Programme Day Activation for Volunteers', () => {
     expect(invalidResult.success).toBe(false);
     expect(invalidResult.message).toContain('does not exist');
   });
+
+  it('preserves scheduled calendar_date when Day 3 is activated and allows check-in when overridden open', () => {
+    const staff = dataStore.getStaff()[0];
+    const day3 = dataStore.getProgrammeDays().find(d => d.day_number === 3)!;
+    const initialCalendarDate = day3.calendar_date;
+
+    // Admin sets Day 3 active
+    const res = dataStore.setActiveProgrammeDay(3, staff, false);
+    expect(res.success).toBe(true);
+
+    // Verify calendar date is intact (not overwritten)
+    const schedule = dataStore.getPublicSchedule();
+    expect(schedule.current_day.day_number).toBe(3);
+    expect(schedule.current_day.calendar_date).toBe(initialCalendarDate);
+
+    // Force open morning session for Day 3
+    const morningSlot = schedule.slots.find(s => s.session_code === 'morning')!;
+    dataStore.setSlotOverride(morningSlot.id, true, staff);
+
+    const refreshedSchedule = dataStore.getPublicSchedule();
+    const refreshedSlot = refreshedSchedule.slots.find(s => s.id === morningSlot.id)!;
+    expect(refreshedSlot.is_open).toBe(true);
+
+    // Volunteer check-in succeeds without date mismatch
+    const sub = dataStore.submitTask({
+      volunteer_id: 'LLO-VOL-001',
+      session_slot_id: morningSlot.id,
+    });
+    expect(sub.success).toBe(true);
+    expect(sub.submission?.day_number).toBe(3);
+  });
 });

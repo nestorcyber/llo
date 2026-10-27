@@ -1,5 +1,5 @@
 import { normalizeVolunteerId, isValidVolunteerIdFormat } from '../src/lib/validation';
-import { isSessionWindowOpen, formatLagosDateTime } from '../src/lib/lagos-time';
+import { isSessionWindowOpen, formatLagosDateTime, getLagosDateString } from '../src/lib/lagos-time';
 import { checkRateLimit } from './utils/rate-limiter';
 import { supabaseServer, isServerSupabaseConfigured } from './utils/supabase-server';
 import { dataStore } from '../src/lib/data-store';
@@ -115,7 +115,8 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
             calendar_date,
             programme:programmes (
               id,
-              status
+              status,
+              active_day_number
             )
           )
         `)
@@ -142,7 +143,12 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
       }
 
       // 3. Confirm session window in Africa/Lagos
-      const isOpen = isSessionWindowOpen(slot, day.calendar_date);
+      // When day is the admin-activated day or today, evaluate window against todayLagos
+      const todayLagos = getLagosDateString();
+      const evalDate = (programme.active_day_number === day.day_number || day.calendar_date === todayLagos)
+        ? todayLagos
+        : day.calendar_date;
+      const isOpen = isSessionWindowOpen(slot, evalDate);
       if (!isOpen) {
         return res.status(400).json({
           success: false,
@@ -184,7 +190,7 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
           submitted_ip: clientIp,
           user_agent: userAgent,
         })
-        .select()
+        .select('id, programme_id, programme_day_id, session_slot_id, volunteer_id, status, submitted_at, submitted_ip, user_agent')
         .single();
 
       if (insertErr) {

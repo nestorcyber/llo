@@ -22,7 +22,7 @@ export async function handlePublicSchedule(req: any, res: any) {
       const todayLagos = getLagosDateString();
       const { data: prog, error: progErr } = await supabaseServer
         .from('programmes')
-        .select('*')
+        .select('id, title, start_date, duration_days, timezone, status, active_day_number')
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -35,7 +35,7 @@ export async function handlePublicSchedule(req: any, res: any) {
       // Get programme days
       const { data: days } = await supabaseServer
         .from('programme_days')
-        .select('*')
+        .select('id, programme_id, day_number, calendar_date, theme, is_active')
         .eq('programme_id', prog.id)
         .order('day_number', { ascending: true });
 
@@ -57,7 +57,7 @@ export async function handlePublicSchedule(req: any, res: any) {
 
       const { data: slots } = await supabaseServer
         .from('session_slots')
-        .select('*')
+        .select('id, programme_day_id, session_code, name, scheduled_time, window_open_offset_minutes, window_close_offset_minutes, is_override_open')
         .eq('programme_day_id', currentDay.id)
         .order('scheduled_time', { ascending: true });
 
@@ -78,11 +78,18 @@ export async function handlePublicSchedule(req: any, res: any) {
       const now = new Date();
       let openSlotFound: any = null;
 
+      // When evaluating session windows, if currentDay is the active day set by admin or today,
+      // evaluate against todayLagos so scheduled times (10:00, 15:00, 19:00 WAT) trigger today
+      // without altering the day's original calendar date.
+      const evalDate = (prog.active_day_number === currentDay.day_number || currentDay.calendar_date === todayLagos)
+        ? todayLagos
+        : currentDay.calendar_date;
+
       const enrichedSlots = (slots || []).map(slot => {
-        const isWindowOpen = isSessionWindowOpen(slot, currentDay.calendar_date, now);
+        const isWindowOpen = isSessionWindowOpen(slot, evalDate, now);
         // Strictly enforce only one session active at a time
         const isSlotActive = isWindowOpen && !openSlotFound;
-        const windowStatus = isSlotActive ? 'open' : getSessionWindowStatus(slot, currentDay.calendar_date, now);
+        const windowStatus = isSlotActive ? 'open' : getSessionWindowStatus(slot, evalDate, now);
 
         const enriched = {
           ...slot,
@@ -98,7 +105,7 @@ export async function handlePublicSchedule(req: any, res: any) {
         return enriched;
       });
 
-      const nextSession = getNextSessionInfo(currentDay.calendar_date, slots || [], now);
+      const nextSession = getNextSessionInfo(evalDate, slots || [], now);
 
       if (res.setHeader) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');

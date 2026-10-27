@@ -10,21 +10,30 @@ import {
   Award,
   Filter,
   RefreshCw,
+  Radio,
+  Lock,
+  Unlock,
+  RotateCcw,
 } from 'lucide-react';
-import { DashboardMetrics, ProgrammeDay, Volunteer } from '../../types';
+import { DashboardMetrics, ProgrammeDay, Volunteer, StaffProfile, SessionSlot } from '../../types';
 import { dataStore } from '../../lib/data-store';
+import { RolePermissions } from '../../lib/validation';
 
 interface DashboardProps {
   onNavigateToVolunteers?: () => void;
+  currentStaff?: StaffProfile;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToVolunteers }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToVolunteers, currentStaff }) => {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [selectedDayNumber, setSelectedDayNumber] = useState<number | 'all'>('all');
   const [programmeDays, setProgrammeDays] = useState<ProgrammeDay[]>([]);
   const [volunteersList, setVolunteersList] = useState<Volunteer[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [updatingSlotId, setUpdatingSlotId] = useState<string | null>(null);
+  const [isActivatingDay, setIsActivatingDay] = useState(false);
 
   useEffect(() => {
     // Proactively sync live database on dashboard mount
@@ -55,6 +64,56 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToVolunteers }) 
       console.error('Failed to load dashboard metrics:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const canManage = currentStaff ? RolePermissions.canManageTasks(currentStaff.role) : true;
+
+  const activeProg = (dataStore as any).state?.programmes?.[0] || null;
+  const activeDayNumber = activeProg?.active_day_number || 1;
+  const activeDay = programmeDays.find(d => d.day_number === activeDayNumber) || programmeDays[0];
+  const activeDaySlots: Array<SessionSlot & { checkins_count?: number; is_open: boolean; window_status: string; formatted_window?: string }> =
+    activeDay ? (dataStore.getDaySessionSlots(activeDay.id) as any) : [];
+
+  const handleSetActiveDay = async (dayNum: number) => {
+    setIsActivatingDay(true);
+    try {
+      const res = await dataStore.setActiveProgrammeDay(dayNum, currentStaff, false);
+      if (res.success) {
+        setActionMsg(`Day ${dayNum} (${activeDay?.calendar_date || ''}) is now active on the frontend!`);
+        setTimeout(() => setActionMsg(null), 4000);
+        loadData();
+      }
+    } finally {
+      setIsActivatingDay(false);
+    }
+  };
+
+  const handleToggleSlotOverride = async (slotId: string, makeOpen: boolean) => {
+    setUpdatingSlotId(slotId);
+    try {
+      const res = await dataStore.setSlotOverride(slotId, makeOpen, currentStaff as any);
+      if (res.success) {
+        setActionMsg(makeOpen ? 'Session window is now OPEN on the frontend!' : 'Session window is now CLOSED.');
+        setTimeout(() => setActionMsg(null), 4000);
+        loadData();
+      }
+    } finally {
+      setUpdatingSlotId(null);
+    }
+  };
+
+  const handleResetSlotAuto = async (slotId: string) => {
+    setUpdatingSlotId(slotId);
+    try {
+      const res = await dataStore.setSlotOverride(slotId, null, currentStaff as any);
+      if (res.success) {
+        setActionMsg('Session window reset to automatic schedule.');
+        setTimeout(() => setActionMsg(null), 4000);
+        loadData();
+      }
+    } finally {
+      setUpdatingSlotId(null);
     }
   };
 
@@ -123,6 +182,154 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToVolunteers }) 
               </option>
             ))}
           </select>
+        </div>
+      </div>
+
+      {/* Action Success Notification */}
+      {actionMsg && (
+        <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center space-x-2.5 text-emerald-900 text-xs font-semibold shadow-xs animate-fadeIn">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+          <span>{actionMsg}</span>
+        </div>
+      )}
+
+      {/* Live Day & Session Controls Card */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+              <Radio className="w-4 h-4 text-blue-600 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900">
+                  Live Programme Day & Session Controls
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-600 text-white uppercase tracking-wider">
+                  Live Control
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Directly control which day and sessions are active on the volunteer check-in frontend
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Active Day Selector */}
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-bold text-slate-600 whitespace-nowrap">Active Day on Frontend:</span>
+            <select
+              value={activeDayNumber}
+              disabled={isActivatingDay || !canManage}
+              onChange={e => handleSetActiveDay(Number(e.target.value))}
+              className="text-xs font-bold bg-blue-50/80 text-blue-900 border border-blue-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-200 cursor-pointer"
+            >
+              {programmeDays.map(day => (
+                <option key={day.id} value={day.day_number}>
+                  Day {day.day_number} ({day.calendar_date}) {day.day_number === activeDayNumber ? '• ACTIVE' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* 3 Sessions for the Active Day */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {activeDaySlots.map(slot => {
+            const sessionIcon =
+              slot.session_code === 'morning' ? Sun :
+              slot.session_code === 'afternoon' ? Sunset : Moon;
+            const Icon = sessionIcon;
+            const isUpdating = updatingSlotId === slot.id;
+
+            return (
+              <div
+                key={slot.id}
+                className={`p-4 rounded-xl border transition flex flex-col justify-between space-y-3 ${
+                  slot.is_open
+                    ? 'bg-emerald-50/30 border-emerald-200/90 shadow-xs'
+                    : 'bg-slate-50/70 border-slate-200/80'
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        slot.is_open ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
+                      }`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900">{slot.name}</div>
+                        <div className="text-[10px] text-slate-500">{slot.formatted_window}</div>
+                      </div>
+                    </div>
+
+                    <div>
+                      {slot.is_override_open === true ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          FORCE OPEN
+                        </span>
+                      ) : slot.is_override_open === false ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
+                          FORCE CLOSED
+                        </span>
+                      ) : slot.is_open ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center space-x-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          <span>OPEN</span>
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-200 text-slate-600">
+                          CLOSED
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2.5 text-[11px] text-slate-600 flex items-center justify-between">
+                    <span>Recorded check-ins:</span>
+                    <span className="font-mono font-bold text-slate-900">{slot.checkins_count || 0}</span>
+                  </div>
+                </div>
+
+                {canManage && (
+                  <div className="pt-2 border-t border-slate-200/60 flex items-center gap-1.5">
+                    {slot.is_open ? (
+                      <button
+                        onClick={() => handleToggleSlotOverride(slot.id, false)}
+                        disabled={isUpdating}
+                        className="flex-1 py-1.5 px-2.5 rounded-lg text-[11px] font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition flex items-center justify-center space-x-1 disabled:opacity-50"
+                      >
+                        {isUpdating ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Lock className="w-3 h-3" />}
+                        <span>Close Session</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleToggleSlotOverride(slot.id, true)}
+                        disabled={isUpdating}
+                        className="flex-1 py-1.5 px-2.5 rounded-lg text-[11px] font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition flex items-center justify-center space-x-1 disabled:opacity-50"
+                      >
+                        {isUpdating ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Unlock className="w-3 h-3" />}
+                        <span>Open for Check-In</span>
+                      </button>
+                    )}
+
+                    {slot.is_override_open !== null && slot.is_override_open !== undefined && (
+                      <button
+                        onClick={() => handleResetSlotAuto(slot.id)}
+                        disabled={isUpdating}
+                        title="Reset to automatic schedule"
+                        className="p-1.5 rounded-lg text-[11px] font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-300 transition"
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

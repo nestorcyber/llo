@@ -23,13 +23,35 @@ export async function handleAdminData(req: any, res: any) {
       { data: staff_profiles, error: staffErr },
       { data: audit_logs, error: auditErr },
     ] = await Promise.all([
-      supabaseServer.from('programmes').select('*').order('created_at', { ascending: false }),
-      supabaseServer.from('programme_days').select('*').order('day_number', { ascending: true }),
-      supabaseServer.from('session_slots').select('*').order('scheduled_time', { ascending: true }),
-      supabaseServer.from('volunteers').select('*').order('volunteer_id', { ascending: true }),
-      supabaseServer.from('task_submissions').select('*').order('submitted_at', { ascending: false }),
-      supabaseServer.from('staff_profiles').select('*').order('created_at', { ascending: true }),
-      supabaseServer.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200),
+      supabaseServer
+        .from('programmes')
+        .select('id, title, slug, description, start_date, duration_days, timezone, status, active_day_number, created_at, updated_at')
+        .order('created_at', { ascending: false }),
+      supabaseServer
+        .from('programme_days')
+        .select('id, programme_id, day_number, calendar_date, theme, is_active, created_at')
+        .order('day_number', { ascending: true }),
+      supabaseServer
+        .from('session_slots')
+        .select('id, programme_day_id, session_code, name, scheduled_time, window_open_offset_minutes, window_close_offset_minutes, is_override_open, created_at')
+        .order('scheduled_time', { ascending: true }),
+      supabaseServer
+        .from('volunteers')
+        .select('id, volunteer_id, full_name, email, phone, track, is_active, notes, created_at, updated_at')
+        .order('volunteer_id', { ascending: true }),
+      supabaseServer
+        .from('task_submissions')
+        .select('id, programme_id, programme_day_id, session_slot_id, volunteer_id, status, submitted_at, submitted_ip, user_agent, voided_at, voided_by, void_reason')
+        .order('submitted_at', { ascending: false }),
+      supabaseServer
+        .from('staff_profiles')
+        .select('id, email, full_name, role, is_active, created_at, updated_at')
+        .order('created_at', { ascending: true }),
+      supabaseServer
+        .from('audit_logs')
+        .select('id, staff_id, staff_email, action, target_type, target_id, details, ip_address, created_at')
+        .order('created_at', { ascending: false })
+        .limit(200),
     ]);
 
     if (progErr || daysErr || slotsErr || volErr || subErr || staffErr || auditErr) {

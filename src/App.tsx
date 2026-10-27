@@ -108,7 +108,7 @@ export const App: React.FC = () => {
         onGoToPublicPage={handleGoToPublic}
       >
         {currentAdminTab === 'dashboard' && (
-          <Dashboard onNavigateToVolunteers={() => setCurrentAdminTab('volunteers')} />
+          <Dashboard onNavigateToVolunteers={() => setCurrentAdminTab('volunteers')} currentStaff={currentStaff} />
         )}
         {currentAdminTab === 'attendance' && <Attendance currentStaff={currentStaff} />}
         {currentAdminTab === 'volunteers' && <Volunteers currentStaff={currentStaff} />}

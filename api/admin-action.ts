@@ -32,7 +32,7 @@ export async function handleAdminAction(req: any, res: any) {
             is_active: payload.is_active ?? true,
             notes: payload.notes || null,
           })
-          .select()
+          .select('id, volunteer_id, full_name, email, phone, track, is_active, notes, created_at, updated_at')
           .single();
 
         if (error) {
@@ -62,7 +62,7 @@ export async function handleAdminAction(req: any, res: any) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', id)
-          .select()
+          .select('id, volunteer_id, full_name, email, phone, track, is_active, notes, created_at, updated_at')
           .single();
 
         if (error) throw error;
@@ -77,7 +77,7 @@ export async function handleAdminAction(req: any, res: any) {
         const { data, error } = await supabaseServer
           .from('volunteers')
           .upsert(rows, { onConflict: 'volunteer_id' })
-          .select();
+          .select('id, volunteer_id, full_name, email, phone, track, is_active, notes, created_at, updated_at');
 
         if (error) throw error;
         return res.status(200).json({ success: true, data });
@@ -94,7 +94,7 @@ export async function handleAdminAction(req: any, res: any) {
             voided_by: voided_by || null,
           })
           .eq('id', submission_id)
-          .select()
+          .select('id, status, void_reason, voided_at, voided_by')
           .single();
 
         if (error) throw error;
@@ -109,7 +109,7 @@ export async function handleAdminAction(req: any, res: any) {
             is_override_open: override,
           })
           .eq('id', slot_id)
-          .select()
+          .select('id, name, session_code, scheduled_time, is_override_open')
           .single();
 
         if (error) throw error;
@@ -125,7 +125,7 @@ export async function handleAdminAction(req: any, res: any) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', programme_id)
-          .select()
+          .select('id, title, active_day_number, status, updated_at')
           .single();
 
         if (error) throw error;
@@ -141,7 +141,7 @@ export async function handleAdminAction(req: any, res: any) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', staff_id)
-          .select()
+          .select('id, email, full_name, role, is_active, updated_at')
           .single();
 
         if (error) throw error;
@@ -149,18 +149,19 @@ export async function handleAdminAction(req: any, res: any) {
       }
 
       case 'add_audit_log': {
-        const { staff_id, action_type, entity_type, entity_id, details } = payload;
+        const { staff_id, staff_email, action: logAction, target_type, target_id, details } = payload;
         const { data, error } = await supabaseServer
           .from('audit_logs')
           .insert({
             staff_id: staff_id || null,
-            action_type,
-            entity_type,
-            entity_id: entity_id || null,
+            staff_email: staff_email || null,
+            action: logAction || payload.action_type || 'SYSTEM_ACTION',
+            target_type: target_type || payload.entity_type || 'system',
+            target_id: target_id || payload.entity_id || null,
             details: details || {},
-            ip_address: '127.0.0.1',
+            ip_address: payload.ip_address || '127.0.0.1',
           })
-          .select()
+          .select('id, staff_id, staff_email, action, target_type, target_id, details, ip_address, created_at')
           .single();
 
         if (error) throw error;

@@ -350,13 +350,35 @@ class Store {
               { data: staff },
               { data: logs },
             ] = await Promise.all([
-              supabase.from('programmes').select('*').order('created_at', { ascending: false }),
-              supabase.from('programme_days').select('*').order('day_number', { ascending: true }),
-              supabase.from('session_slots').select('*').order('scheduled_time', { ascending: true }),
-              supabase.from('volunteers').select('*').order('volunteer_id', { ascending: true }),
-              supabase.from('task_submissions').select('*').order('submitted_at', { ascending: false }),
-              supabase.from('staff_profiles').select('*').order('created_at', { ascending: true }),
-              supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(200),
+              supabase
+                .from('programmes')
+                .select('id, title, slug, description, start_date, duration_days, timezone, status, active_day_number, created_at, updated_at')
+                .order('created_at', { ascending: false }),
+              supabase
+                .from('programme_days')
+                .select('id, programme_id, day_number, calendar_date, theme, is_active, created_at')
+                .order('day_number', { ascending: true }),
+              supabase
+                .from('session_slots')
+                .select('id, programme_day_id, session_code, name, scheduled_time, window_open_offset_minutes, window_close_offset_minutes, is_override_open, created_at')
+                .order('scheduled_time', { ascending: true }),
+              supabase
+                .from('volunteers')
+                .select('id, volunteer_id, full_name, email, phone, track, is_active, notes, created_at, updated_at')
+                .order('volunteer_id', { ascending: true }),
+              supabase
+                .from('task_submissions')
+                .select('id, programme_id, programme_day_id, session_slot_id, volunteer_id, status, submitted_at, submitted_ip, user_agent, voided_at, voided_by, void_reason')
+                .order('submitted_at', { ascending: false }),
+              supabase
+                .from('staff_profiles')
+                .select('id, email, full_name, role, is_active, created_at, updated_at')
+                .order('created_at', { ascending: true }),
+              supabase
+                .from('audit_logs')
+                .select('id, staff_id, staff_email, action, target_type, target_id, details, ip_address, created_at')
+                .order('created_at', { ascending: false })
+                .limit(200),
             ]);
 
             if (progs && progs.length > 0) this.state.programmes = progs;
@@ -593,14 +615,21 @@ class Store {
     const daySlots = this.state.session_slots.filter(s => s.programme_day_id === currentDay!.id);
     const now = new Date();
 
+    // When evaluating whether a slot is open, if currentDay is the active day set by admin or today,
+    // evaluate against todayLagos so scheduled times (10:00, 15:00, 19:00 WAT) trigger today
+    // without altering the day's original calendar date.
+    const evalDate = (activeProg.active_day_number === currentDay!.day_number || currentDay!.calendar_date === todayLagos)
+      ? todayLagos
+      : currentDay!.calendar_date;
+
     // Strictly enforce: ONLY ONE session can be active at a time
     let openSlotFound: (SessionSlot & { checkins_count?: number }) | null = null;
 
     const enrichedSlots = daySlots.map(slot => {
-      const isWindowOpen = isSessionWindowOpen(slot, currentDay!.calendar_date, now);
+      const isWindowOpen = isSessionWindowOpen(slot, evalDate, now);
       // If a slot is open and no active slot has been claimed yet, designate this as the active session
       const isSlotActive = isWindowOpen && !openSlotFound;
-      const windowStatus = isSlotActive ? 'open' : getSessionWindowStatus(slot, currentDay!.calendar_date, now);
+      const windowStatus = isSlotActive ? 'open' : getSessionWindowStatus(slot, evalDate, now);
       const checkinCount = this.state.task_submissions.filter(
         sub => sub.session_slot_id === slot.id && sub.status !== 'voided'
       ).length;
@@ -619,7 +648,7 @@ class Store {
       return enriched;
     });
 
-    const nextSession = getNextSessionInfo(currentDay!.calendar_date, daySlots, now);
+    const nextSession = getNextSessionInfo(evalDate, daySlots, now);
 
     const availableDays = this.state.programme_days
       .filter(d => d.programme_id === activeProg.id)
@@ -706,7 +735,12 @@ class Store {
     }
 
     // 4. Verify session window in Africa/Lagos
-    const isOpen = isSessionWindowOpen(slot, day.calendar_date);
+    const activeProg = this.state.programmes.find(p => p.id === day.programme_id) || this.state.programmes[0];
+    const todayLagos = getLagosDateString();
+    const evalDate = (activeProg?.active_day_number === day.day_number || day.calendar_date === todayLagos)
+      ? todayLagos
+      : day.calendar_date;
+    const isOpen = isSessionWindowOpen(slot, evalDate);
     if (!isOpen) {
       const windowStr = formatSessionWindowRange(slot.scheduled_time, slot.window_open_offset_minutes, slot.window_close_offset_minutes);
       return {
@@ -735,7 +769,6 @@ class Store {
     // 6. Save check-in record with server-generated timestamp
     const now = new Date();
     const submissionId = uid();
-    const activeProg = this.state.programmes.find(p => p.id === day.programme_id) || this.state.programmes[0];
 
     const newSubmission: TaskSubmission = {
       id: submissionId,
@@ -1038,7 +1071,7 @@ class Store {
               is_active: vol.is_active ?? true,
               notes: vol.notes || null,
             })
-            .select()
+            .select('id, volunteer_id, full_name, email, phone, track, is_active, notes, created_at, updated_at')
             .single();
 
           if (!dbErr && dbData) {
@@ -1281,9 +1314,15 @@ class Store {
   public getDaySessionSlots(dayId: string) {
     const slots = this.state.session_slots.filter(s => s.programme_day_id === dayId);
     const day = this.state.programme_days.find(d => d.id === dayId);
+    const activeProg = this.state.programmes.find(p => p.status === 'active') || this.state.programmes[0];
+    const todayLagos = getLagosDateString();
+    const evalDate = (day && (activeProg?.active_day_number === day.day_number || day.calendar_date === todayLagos))
+      ? todayLagos
+      : (day?.calendar_date || todayLagos);
+
     return slots.map(slot => {
-      const isOpen = day ? isSessionWindowOpen(slot, day.calendar_date) : false;
-      const status = day ? getSessionWindowStatus(slot, day.calendar_date) : 'closed';
+      const isOpen = day ? isSessionWindowOpen(slot, evalDate) : false;
+      const status = day ? getSessionWindowStatus(slot, evalDate) : 'closed';
       const checkinCount = this.state.task_submissions.filter(
         sub => sub.session_slot_id === slot.id && sub.status !== 'voided'
       ).length;
