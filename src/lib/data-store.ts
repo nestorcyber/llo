@@ -19,7 +19,7 @@ import {
   formatSessionWindowRange,
   getNextSessionInfo,
 } from './lagos-time';
-import { normalizeVolunteerId } from './validation';
+import { normalizeVolunteerId, resolveVolunteerInput } from './validation';
 import { supabase, isSupabaseConfigured } from './supabase';
 
 
@@ -641,21 +641,19 @@ class Store {
 
     const enrichedSlots = daySlots.map(slot => {
       const isWindowOpen = isSessionWindowOpen(slot, evalDate, now);
-      // If a slot is open and no active slot has been claimed yet, designate this as the active session
-      const isSlotActive = isWindowOpen && !openSlotFound;
-      const windowStatus = isSlotActive ? 'open' : getSessionWindowStatus(slot, evalDate, now);
+      const windowStatus = isWindowOpen ? 'open' : getSessionWindowStatus(slot, evalDate, now);
       const checkinCount = this.state.task_submissions.filter(
         sub => sub.session_slot_id === slot.id && sub.status !== 'voided'
       ).length;
 
       const enriched = {
         ...slot,
-        is_open: isSlotActive,
+        is_open: isWindowOpen,
         window_status: windowStatus,
         checkins_count: checkinCount,
       };
 
-      if (isSlotActive) {
+      if (isWindowOpen && !openSlotFound) {
         openSlotFound = enriched;
       }
 
@@ -705,11 +703,11 @@ class Store {
    * and saves the check-in record.
    */
   public submitTask(payload: SubmissionPayload, clientIp = '127.0.0.1', userAgent = 'Web Client'): SubmissionResult {
-    const normalizedId = normalizeVolunteerId(payload.volunteer_id);
+    const normalizedId = resolveVolunteerInput(payload.volunteer_id);
 
     // 1. Resolve volunteer
     const volunteer = this.state.volunteers.find(
-      v => normalizeVolunteerId(v.volunteer_id) === normalizedId
+      v => resolveVolunteerInput(v.volunteer_id) === normalizedId || normalizeVolunteerId(v.volunteer_id) === normalizedId
     );
 
     if (!volunteer) {
@@ -801,6 +799,21 @@ class Store {
 
     this.state.task_submissions.unshift(newSubmission);
     this.save();
+
+    if (typeof window !== 'undefined' && isSupabaseConfigured && supabase) {
+      Promise.resolve(
+        supabase.from('task_submissions').insert({
+          programme_id: activeProg.id,
+          programme_day_id: day.id,
+          session_slot_id: slot.id,
+          volunteer_id: volunteer.id,
+          status: 'reported',
+          submitted_at: now.toISOString(),
+          submitted_ip: clientIp,
+          user_agent: userAgent,
+        })
+      ).catch((err: any) => console.warn('Could not mirror checkin to live database:', err));
+    }
 
     return {
       success: true,

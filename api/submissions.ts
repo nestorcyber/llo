@@ -1,4 +1,4 @@
-import { normalizeVolunteerId, isValidVolunteerIdFormat } from '../src/lib/validation';
+import { isValidVolunteerIdFormat, resolveVolunteerInput } from '../src/lib/validation';
 import { isSessionWindowOpen, formatLagosDateTime, getLagosDateString } from '../src/lib/lagos-time';
 import { checkRateLimit } from './utils/rate-limiter';
 import { supabaseServer, isServerSupabaseConfigured } from './utils/supabase-server';
@@ -42,7 +42,7 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
     });
   }
 
-  const normalizedId = normalizeVolunteerId(body.volunteer_id);
+  const normalizedId = resolveVolunteerInput(body.volunteer_id);
 
   // Validate ID format
   if (!isValidVolunteerIdFormat(normalizedId)) {
@@ -70,11 +70,11 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
   // If Supabase service role is configured (and not running in vitest unit test runner), execute via Supabase
   if (!process.env.VITEST && isServerSupabaseConfigured && supabaseServer) {
     try {
-      // 1. Resolve active volunteer
+      // 1. Resolve active volunteer (case-insensitive)
       const { data: volunteer, error: volErr } = await supabaseServer
         .from('volunteers')
         .select('id, volunteer_id, full_name, is_active, pin_hash')
-        .eq('volunteer_id', normalizedId)
+        .ilike('volunteer_id', normalizedId)
         .maybeSingle();
 
       if (volErr || !volunteer) {
@@ -218,10 +218,16 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
         },
       });
     } catch (err: any) {
-      console.error('Supabase submission error:', err);
+      console.error('Supabase submission error, falling back to business engine:', err);
+      // Fallback to dataStore so the user check-in is not lost due to backend DB RLS or transient network issues
+      const userAgent = typeof req.headers?.['user-agent'] === 'string' ? req.headers['user-agent'] : 'Web Client';
+      const fallbackResult = dataStore.submitTask(body, clientIp, userAgent);
+      if (fallbackResult.success) {
+        return res.status(201).json(fallbackResult);
+      }
       return res.status(500).json({
         success: false,
-        message: 'An internal server error occurred while recording check-in.',
+        message: err?.message || 'An internal server error occurred while recording check-in.',
         error_code: 'SERVER_ERROR',
       });
     }

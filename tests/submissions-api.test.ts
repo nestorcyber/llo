@@ -270,4 +270,61 @@ describe('Secure Submission Backend & Business Rules', () => {
     expect(blockedCheck.remaining).toBe(0);
     expect(blockedCheck.retryAfterSeconds).toBeGreaterThan(0);
   });
+
+  it('allows multiple sessions to be simultaneously open and selectable', async () => {
+    const staff = dataStore.getStaff()[0];
+    const slots = dataStore.getDaySessionSlots('day-prog-llo-2026-1');
+    const morningSlot = slots[0];
+    const afternoonSlot = slots[1];
+
+    // Force override open on both morning and afternoon slots
+    await dataStore.setSlotOverride(morningSlot.id, true, staff);
+    await dataStore.setSlotOverride(afternoonSlot.id, true, staff);
+
+    const schedule = dataStore.getPublicSchedule();
+    const morningInSchedule = schedule.slots.find(s => s.id === morningSlot.id);
+    const afternoonInSchedule = schedule.slots.find(s => s.id === afternoonSlot.id);
+
+    expect(morningInSchedule?.is_open).toBe(true);
+    expect(morningInSchedule?.window_status).toBe('open');
+
+    // Crucial fix verification: the second open slot must NOT be forced to closed!
+    expect(afternoonInSchedule?.is_open).toBe(true);
+    expect(afternoonInSchedule?.window_status).toBe('open');
+  });
+
+  it('accepts shorthand volunteer ID input during check-in', async () => {
+    const schedule = dataStore.getPublicSchedule();
+    const openSlot = schedule.slots.find(s => s.is_open)!;
+
+    let responseStatus = 0;
+    let responseBody: any = null;
+
+    // Volunteer inputs just "1" or "001"
+    const mockReq = {
+      method: 'POST',
+      body: {
+        volunteer_id: '1',
+        session_slot_id: openSlot.id,
+      },
+    };
+
+    const mockRes = {
+      status(code: number) {
+        responseStatus = code;
+        return this;
+      },
+      json(data: any) {
+        responseBody = data;
+      },
+      setHeader() {},
+    };
+
+    await handleSubmission(mockReq, mockRes);
+
+    expect(responseStatus).toBe(201);
+    expect(responseBody.success).toBe(true);
+    expect(responseBody.submission.volunteer_id).toBe('LLO-VOL-001');
+    expect(responseBody.submission.volunteer_name).toBe('Chinedu Okeke');
+  });
 });

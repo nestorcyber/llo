@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   normalizeVolunteerId,
   isValidVolunteerIdFormat,
+  resolveVolunteerInput,
   sanitizeCsvCell,
   generateNextVolunteerId,
 } from '../src/lib/validation';
@@ -30,6 +31,20 @@ describe('Volunteer ID Normalization and Validation', () => {
     expect(isValidVolunteerIdFormat('LLO-')).toBe(false);
     expect(isValidVolunteerIdFormat('LLO-VOL-AB')).toBe(false);
     expect(isValidVolunteerIdFormat('12345')).toBe(false);
+  });
+
+  it('resolves user shorthand inputs to standard volunteer IDs', () => {
+    expect(resolveVolunteerInput('1')).toBe('LLO-VOL-001');
+    expect(resolveVolunteerInput('001')).toBe('LLO-VOL-001');
+    expect(resolveVolunteerInput('42')).toBe('LLO-VOL-042');
+    expect(resolveVolunteerInput('vol-001')).toBe('LLO-VOL-001');
+    expect(resolveVolunteerInput('VOL 003')).toBe('LLO-VOL-003');
+    expect(resolveVolunteerInput('llo-004')).toBe('LLO-VOL-004');
+    expect(resolveVolunteerInput('llo-vol-1')).toBe('LLO-VOL-001');
+    expect(resolveVolunteerInput('llo-vol-02')).toBe('LLO-VOL-002');
+    expect(resolveVolunteerInput('LLO - VOL - 005')).toBe('LLO-VOL-005');
+    expect(resolveVolunteerInput('LLO-VOL-006')).toBe('LLO-VOL-006');
+    expect(resolveVolunteerInput('LLO-CORE-01')).toBe('LLO-CORE-01');
   });
 
   it('generates next sequential volunteer ID correctly', () => {

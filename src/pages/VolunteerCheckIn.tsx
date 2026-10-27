@@ -10,26 +10,11 @@ import {
 } from 'lucide-react';
 import { PublicScheduleData, SubmissionResult, SessionSlot } from '../types';
 import { fetchPublicSchedule, submitVolunteerTask } from '../lib/api-client';
-import { normalizeVolunteerId, isValidVolunteerIdFormat } from '../lib/validation';
+import { isValidVolunteerIdFormat, resolveVolunteerInput } from '../lib/validation';
 import { formatLagosDateTime, formatSessionWindowRange } from '../lib/lagos-time';
 import niforixLogo from '../assets/niforix-logo.png';
 import lloLogo from '../assets/llo-logo.png';
 
-function formatProgrammeDayDate(dateStr: string): string {
-  try {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    const date = new Date(Date.UTC(y, m - 1, d));
-    return new Intl.DateTimeFormat('en-GB', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      timeZone: 'UTC',
-    }).format(date);
-  } catch {
-    return dateStr;
-  }
-}
 
 interface Props {
   onNavigateToAdmin?: () => void;
@@ -63,9 +48,12 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
       const data = await fetchPublicSchedule();
       setScheduleData(data);
 
-      // Auto-select the currently active/open slot if available
-      if (data.active_slot) {
+      // Auto-select the currently active/open slot if available, or first open slot
+      const openSlot = data.slots.find(s => s.is_open);
+      if (data.active_slot && data.active_slot.is_open) {
         setSelectedSlotId(data.active_slot.id);
+      } else if (openSlot) {
+        setSelectedSlotId(openSlot.id);
       } else {
         setSelectedSlotId('');
       }
@@ -93,15 +81,15 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
     setFormError(null);
     setSubmissionResult(null);
 
-    const normalized = normalizeVolunteerId(volunteerId);
+    const resolvedId = resolveVolunteerInput(volunteerId);
 
-    if (!normalized) {
+    if (!resolvedId) {
       setFormError('Please enter your assigned Volunteer ID.');
       return;
     }
 
-    if (!isValidVolunteerIdFormat(normalized)) {
-      setFormError(`Invalid Volunteer ID format: "${normalized}". Expected format like LLO-VOL-001.`);
+    if (!isValidVolunteerIdFormat(resolvedId)) {
+      setFormError(`Invalid Volunteer ID format: "${resolvedId}". Expected format like LLO-VOL-001.`);
       return;
     }
 
@@ -121,7 +109,7 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
     setIsSubmitting(true);
     try {
       const result = await submitVolunteerTask({
-        volunteer_id: normalized,
+        volunteer_id: resolvedId,
         session_slot_id: selectedSlot.id,
       });
 
@@ -229,42 +217,17 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
         {(!submissionResult || !submissionResult.success) && scheduleData && (
           <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-9 shadow-sm">
             {/* Header section */}
-            <div className="mb-5">
-              <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Volunteer Check-In
-              </h2>
-              <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-                Confirm your daily programme attendance by providing your volunteer ID.
-              </p>
-            </div>
-
-            {/* Active Day & Scheduled Date Banner */}
-            <div className="mb-6 p-3.5 sm:p-4 rounded-2xl bg-blue-50/70 border border-blue-200/80 flex items-center justify-between gap-3">
-              <div className="flex items-center space-x-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 text-white font-black text-xs flex flex-col items-center justify-center flex-shrink-0 shadow-xs">
-                  <span className="text-[9px] uppercase tracking-wider font-semibold opacity-90 leading-tight">DAY</span>
-                  <span className="text-sm leading-none font-black">{scheduleData.current_day.day_number}</span>
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center space-x-1.5 flex-wrap">
-                    <span className="text-xs sm:text-sm font-bold text-slate-900">
-                      Day {scheduleData.current_day.day_number}
-                    </span>
-                    <span className="text-xs text-slate-400">•</span>
-                    <span className="text-xs sm:text-sm font-semibold text-blue-900">
-                      {formatProgrammeDayDate(scheduleData.current_day.calendar_date)}
-                    </span>
-                  </div>
-                  {scheduleData.current_day.theme && (
-                    <div className="text-[11px] text-slate-500 truncate mt-0.5">
-                      {scheduleData.current_day.theme}
-                    </div>
-                  )}
-                </div>
+            <div className="mb-6 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  Volunteer Check-In
+                </h2>
+                <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                  Confirm your daily programme attendance by providing your volunteer ID.
+                </p>
               </div>
-
-              <div className="flex-shrink-0">
-                {scheduleData.active_slot ? (
+              <div className="flex-shrink-0 pt-1">
+                {scheduleData.slots.some(s => s.is_open) ? (
                   <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-200">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span>Open</span>
@@ -340,6 +303,9 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
                 className="w-full px-4 py-3.5 text-base rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition shadow-sm font-mono uppercase"
                 required
               />
+              <p className="text-[11px] text-slate-400 mt-1.5">
+                Tip: Enter your full ID (e.g. <span className="font-mono font-medium text-slate-600">LLO-VOL-001</span>) or simply your number (e.g. <span className="font-mono font-medium text-slate-600">001</span> or <span className="font-mono font-medium text-slate-600">1</span>).
+              </p>
             </div>
 
             {/* Field 2: Select Session (Cards matching reference design) */}

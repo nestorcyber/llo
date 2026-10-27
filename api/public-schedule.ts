@@ -101,18 +101,16 @@ export async function handlePublicSchedule(req: any, res: any) {
 
       const enrichedSlots = (slots || []).map(slot => {
         const isWindowOpen = isSessionWindowOpen(slot, evalDate, now);
-        // Strictly enforce only one session active at a time
-        const isSlotActive = isWindowOpen && !openSlotFound;
-        const windowStatus = isSlotActive ? 'open' : getSessionWindowStatus(slot, evalDate, now);
+        const windowStatus = isWindowOpen ? 'open' : getSessionWindowStatus(slot, evalDate, now);
 
         const enriched = {
           ...slot,
-          is_open: isSlotActive,
+          is_open: isWindowOpen,
           window_status: windowStatus,
           checkins_count: checkinsMap[slot.id] || 0,
         };
 
-        if (isSlotActive) {
+        if (isWindowOpen && !openSlotFound) {
           openSlotFound = enriched;
         }
 

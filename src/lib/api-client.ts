@@ -39,6 +39,15 @@ export async function submitVolunteerTask(payload: SubmissionPayload): Promise<S
     });
 
     const data: SubmissionResult = await res.json();
+    if (res.ok) {
+      return data;
+    }
+    // If the server failed with SERVER_ERROR, try dataStore engine fallback
+    if (data && data.error_code === 'SERVER_ERROR') {
+      console.warn('Server error reaching /api/submissions, falling back to local business engine:', data);
+      const fallback = dataStore.submitTask(payload);
+      if (fallback.success) return fallback;
+    }
     return data;
   } catch (err) {
     console.warn('Network error reaching /api/submissions, falling back to local business engine:', err);

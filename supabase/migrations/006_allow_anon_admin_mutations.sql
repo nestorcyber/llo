@@ -39,7 +39,21 @@ TO public
 USING (true)
 WITH CHECK (true);
 
+-- 4. Task Submissions: Allow public/anon check-in insert and select
+DROP POLICY IF EXISTS "Public can insert task submissions" ON task_submissions;
+CREATE POLICY "Public can insert task submissions"
+ON task_submissions FOR INSERT
+TO public
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public can view task submissions" ON task_submissions;
+CREATE POLICY "Public can view task submissions"
+ON task_submissions FOR SELECT
+TO public
+USING (true);
+
 -- Keep RLS enabled with the above permissive policies
 ALTER TABLE volunteers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE session_slots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE programmes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE task_submissions ENABLE ROW LEVEL SECURITY;
