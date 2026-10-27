@@ -254,9 +254,9 @@ export function getNextSessionInfo(
 
   // If all sessions for today have elapsed, next is tomorrow's first session (Morning)
   const firstSlot = sorted[0] || {
-    name: 'Morning Session (10:00 AM)',
+    name: 'Morning Session (8:00 AM)',
     session_code: 'morning' as SessionCode,
-    scheduled_time: '10:00:00',
+    scheduled_time: '08:00:00',
     window_open_offset_minutes: 0,
     window_close_offset_minutes: 120,
   };

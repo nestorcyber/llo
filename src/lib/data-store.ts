@@ -81,7 +81,7 @@ function initializeDefaultData(): StoreState {
       created_at: new Date().toISOString(),
     });
 
-    // 3 slots per day: Morning (10:00 AM), Afternoon (3:00 PM), Evening (7:00 PM)
+    // 3 slots per day: Morning (8:00 AM), Afternoon (3:00 PM), Evening (7:00 PM)
     const morningSlotId = `slot-${dayId}-morning`;
     const afternoonSlotId = `slot-${dayId}-afternoon`;
     const eveningSlotId = `slot-${dayId}-evening`;
@@ -91,10 +91,10 @@ function initializeDefaultData(): StoreState {
         id: morningSlotId,
         programme_day_id: dayId,
         session_code: 'morning',
-        name: 'Morning Session (10:00 AM)',
-        scheduled_time: '10:00:00',
-        window_open_offset_minutes: 0, // Opens at 10:00 AM
-        window_close_offset_minutes: 120, // 10:00 AM - 12:00 PM
+        name: 'Morning Session (8:00 AM)',
+        scheduled_time: '08:00:00',
+        window_open_offset_minutes: 0, // Opens at 8:00 AM
+        window_close_offset_minutes: 120, // 8:00 AM - 10:00 AM
         is_override_open: null, // strictly follows time window
         created_at: new Date().toISOString(),
       },
@@ -616,7 +616,7 @@ class Store {
     const now = new Date();
 
     // When evaluating whether a slot is open, if currentDay is the active day set by admin or today,
-    // evaluate against todayLagos so scheduled times (10:00, 15:00, 19:00 WAT) trigger today
+    // evaluate against todayLagos so scheduled times (08:00, 15:00, 19:00 WAT) trigger today
     // without altering the day's original calendar date.
     const evalDate = (activeProg.active_day_number === currentDay!.day_number || currentDay!.calendar_date === todayLagos)
       ? todayLagos

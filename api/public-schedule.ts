@@ -79,7 +79,7 @@ export async function handlePublicSchedule(req: any, res: any) {
       let openSlotFound: any = null;
 
       // When evaluating session windows, if currentDay is the active day set by admin or today,
-      // evaluate against todayLagos so scheduled times (10:00, 15:00, 19:00 WAT) trigger today
+      // evaluate against todayLagos so scheduled times (08:00, 15:00, 19:00 WAT) trigger today
       // without altering the day's original calendar date.
       const evalDate = (prog.active_day_number === currentDay.day_number || currentDay.calendar_date === todayLagos)
         ? todayLagos

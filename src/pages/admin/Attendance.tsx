@@ -164,7 +164,7 @@ export const Attendance: React.FC<Props> = ({ currentStaff }) => {
             className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-linkedin"
           >
             <option value="all">All Sessions</option>
-            <option value="morning">Morning (10:00 AM)</option>
+            <option value="morning">Morning (8:00 AM)</option>
             <option value="afternoon">Afternoon (3:00 PM)</option>
             <option value="evening">Evening (7:00 PM)</option>
           </select>

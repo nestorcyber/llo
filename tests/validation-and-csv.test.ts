@@ -138,7 +138,7 @@ describe('CSV Generation with Sanitization', () => {
         slot: {
           session_code: 'morning',
           name: 'Morning Session',
-          scheduled_time: '10:00:00',
+          scheduled_time: '08:00:00',
         },
         day: {
           day_number: 1,

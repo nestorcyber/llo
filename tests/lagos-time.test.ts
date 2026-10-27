@@ -40,19 +40,19 @@ describe('Africa/Lagos Timezone Calculations', () => {
     expect(utcDate.getUTCMinutes()).toBe(30);
   });
 
-  it('calculates session windows accurately for Morning (10:00 AM)', () => {
-    // Window open offset: 30 mins before (09:30 AM Lagos = 08:30 UTC)
-    // Window close offset: 120 mins after (12:00 PM Lagos = 11:00 UTC)
+  it('calculates session windows accurately for Morning (8:00 AM)', () => {
+    // Window open offset: 0 mins before (08:00 AM Lagos = 07:00 UTC)
+    // Window close offset: 120 mins after (10:00 AM Lagos = 09:00 UTC)
     const { windowStartUtc, windowEndUtc, scheduledUtc } = calculateSessionWindow(
       '2026-10-26',
-      '10:00:00',
-      30,
+      '08:00:00',
+      0,
       120
     );
 
-    expect(scheduledUtc.toISOString()).toBe('2026-10-26T09:00:00.000Z');
-    expect(windowStartUtc.toISOString()).toBe('2026-10-26T08:30:00.000Z');
-    expect(windowEndUtc.toISOString()).toBe('2026-10-26T11:00:00.000Z');
+    expect(scheduledUtc.toISOString()).toBe('2026-10-26T07:00:00.000Z');
+    expect(windowStartUtc.toISOString()).toBe('2026-10-26T07:00:00.000Z');
+    expect(windowEndUtc.toISOString()).toBe('2026-10-26T09:00:00.000Z');
   });
 
   it('calculates session windows accurately for Afternoon (3:00 PM)', () => {

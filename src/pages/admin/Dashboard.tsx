@@ -481,14 +481,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigateToVolunteers, cu
                 <span className="text-sm font-bold text-slate-800">Morning Session</span>
               </div>
               <span className="text-xs font-mono font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">
-                10:00 AM
+                8:00 AM
               </span>
             </div>
             <div className="text-2xl font-bold text-slate-900 mb-1">
               {metrics.session_counts.morning}
             </div>
             <p className="text-xs text-slate-500">
-              Window: 10:00 AM – 12:00 PM WAT
+              Window: 08:00 AM – 10:00 AM WAT
             </p>
           </div>
 
