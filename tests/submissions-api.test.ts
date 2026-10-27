@@ -227,7 +227,7 @@ describe('Secure Submission Backend & Business Rules', () => {
     expect(secondCode).toBe(409);
     expect(secondRes.success).toBe(false);
     expect(secondRes.error_code).toBe('DUPLICATE_SUBMISSION');
-    expect(secondRes.message).toContain('Duplicate check-in rejected');
+    expect(secondRes.message).toContain('Already checked in');
   });
 
   it('allows resubmission if an existing submission was voided by an authorized administrator', async () => {

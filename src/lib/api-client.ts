@@ -122,7 +122,7 @@ export async function submitVolunteerTask(payload: SubmissionPayload): Promise<S
       if (existingSub) {
         return {
           success: false,
-          message: `Duplicate check-in rejected: You have already checked in for ${slot.name}.`,
+          message: `Already checked in: You have already checked in for ${slot.name}. Volunteers can only check in once per session.`,
           error_code: 'DUPLICATE_SUBMISSION',
         };
       }
@@ -143,7 +143,22 @@ export async function submitVolunteerTask(payload: SubmissionPayload): Promise<S
         .select('id')
         .single();
 
-      if (!insertErr && newSub) {
+      if (insertErr) {
+        if (
+          insertErr.code === '23505' ||
+          insertErr.message?.includes('duplicate key') ||
+          insertErr.message?.includes('uq_volunteer_session_checkin')
+        ) {
+          return {
+            success: false,
+            message: `Already checked in: You have already checked in for ${slot.name}. Volunteers can only check in once per session.`,
+            error_code: 'DUPLICATE_SUBMISSION',
+          };
+        }
+        throw insertErr;
+      }
+
+      if (newSub) {
         return {
           success: true,
           message: 'Check-in recorded successfully!',
@@ -158,7 +173,18 @@ export async function submitVolunteerTask(payload: SubmissionPayload): Promise<S
           },
         };
       }
-    } catch (clientErr) {
+    } catch (clientErr: any) {
+      if (
+        clientErr?.code === '23505' ||
+        clientErr?.message?.includes('duplicate key') ||
+        clientErr?.message?.includes('uq_volunteer_session_checkin')
+      ) {
+        return {
+          success: false,
+          message: 'Already checked in: You have already checked in for this session. Volunteers can only check in once per session.',
+          error_code: 'DUPLICATE_SUBMISSION',
+        };
+      }
       console.warn('Direct Supabase checkin error, falling back to local business engine:', clientErr);
     }
   }

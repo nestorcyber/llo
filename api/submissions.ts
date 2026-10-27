@@ -181,7 +181,7 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
       if (existingSub) {
         return res.status(409).json({
           success: false,
-          message: `Duplicate check-in rejected: You have already checked in for ${slot.name}.`,
+          message: `Already checked in: You have already checked in for ${slot.name}. Volunteers can only check in once per session.`,
           error_code: 'DUPLICATE_SUBMISSION',
         });
       }
@@ -206,10 +206,14 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
         .single();
 
       if (insertErr) {
-        if (insertErr.code === '23505' || insertErr.message?.includes('duplicate key')) {
+        if (
+          insertErr.code === '23505' ||
+          insertErr.message?.includes('duplicate key') ||
+          insertErr.message?.includes('uq_volunteer_session_checkin')
+        ) {
           return res.status(409).json({
             success: false,
-            message: `Duplicate check-in rejected: You have already checked in for ${slot.name}.`,
+            message: `Already checked in: You have already checked in for ${slot.name}. Volunteers can only check in once per session.`,
             error_code: 'DUPLICATE_SUBMISSION',
           });
         }
@@ -230,6 +234,17 @@ export async function handleSubmission(req: ApiRequest, res: ApiResponse) {
         },
       });
     } catch (err: any) {
+      if (
+        err?.code === '23505' ||
+        err?.message?.includes('duplicate key') ||
+        err?.message?.includes('uq_volunteer_session_checkin')
+      ) {
+        return res.status(409).json({
+          success: false,
+          message: 'Already checked in: You have already checked in for this session. Volunteers can only check in once per session.',
+          error_code: 'DUPLICATE_SUBMISSION',
+        });
+      }
       console.error('Supabase submission error, falling back to business engine:', err);
       // Fallback to dataStore so the user check-in is not lost due to backend DB RLS or transient network issues
       const userAgent = typeof req.headers?.['user-agent'] === 'string' ? req.headers['user-agent'] : 'Web Client';

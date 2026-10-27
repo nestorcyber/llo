@@ -765,7 +765,7 @@ class Store {
     // 5. Enforce Unique Database Constraint:
     // Same volunteer cannot check in to the same session slot twice (unless previously voided)
     const existing = this.state.task_submissions.find(
-      sub => sub.volunteer_id === volunteer.id &&
+      sub => (sub.volunteer_id === volunteer.id || sub.volunteer_id === volunteer.volunteer_id) &&
              sub.session_slot_id === slot.id &&
              sub.status !== 'voided'
     );
@@ -773,7 +773,7 @@ class Store {
     if (existing) {
       return {
         success: false,
-        message: `Duplicate check-in rejected: You have already checked in for ${slot.name} at ${formatLagosDateTime(existing.submitted_at)}.`,
+        message: `Already checked in: You have already checked in for ${slot.name}. Volunteers can only check in once per session.`,
         error_code: 'DUPLICATE_SUBMISSION',
       };
     }
