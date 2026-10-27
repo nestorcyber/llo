@@ -165,7 +165,7 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
 
             <div className="text-center mb-6">
               <h2 className="font-heading text-2xl font-extrabold text-slate-900">
-                Attendance Confirmed
+                Check In Confirmed
               </h2>
               <p className="text-sm text-slate-500 mt-1">
                 Your session check-in has been successfully recorded.
@@ -219,7 +219,7 @@ export const VolunteerCheckIn: React.FC<Props> = () => {
                   Volunteer Check-In
                 </h2>
                 <p className="text-sm text-slate-500 mt-1 leading-relaxed">
-                  Confirm your daily programme attendance by providing your volunteer ID.
+                  Confirm your daily programme check-in by providing your volunteer ID.
                 </p>
               </div>
               <div className="flex-shrink-0 pt-1">
